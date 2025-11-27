@@ -1,0 +1,6 @@
+@ECM_BE_HostAddress = http://localhost:5192
+
+GET {{ECM_BE_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
