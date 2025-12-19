@@ -14,8 +14,8 @@ public partial class UserGoal
     [Column("userID")]
     public string userID { get; set; } = null!;
 
-    [Column("CategoryID")]
-    public int CategoryID { get; set; }
+    [Column("Content")]
+    public string Content { get; set; }
 
     [Column("UpdatedAt")]
     public DateTime? UpdatedAt { get; set; }
@@ -24,7 +24,4 @@ public partial class UserGoal
     [InverseProperty("UserGoals")]
     public virtual User User { get; set; } = null!;
 
-    [ForeignKey("CategoryID")]
-    [InverseProperty("UserGoals")]
-    public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 }

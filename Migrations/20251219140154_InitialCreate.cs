@@ -56,20 +56,6 @@ namespace ECM_BE.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Categories",
-                columns: table => new
-                {
-                    CategoryID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Categories", x => x.CategoryID);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Courses",
                 columns: table => new
                 {
@@ -77,7 +63,6 @@ namespace ECM_BE.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Level = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ThumbnailUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -92,11 +77,12 @@ namespace ECM_BE.Migrations
                 {
                     TestID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TestType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    SkillsIncluded = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: true, defaultValueSql: "getdate()")
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Duration = table.Column<int>(type: "int", nullable: false),
+                    TotalQuestions = table.Column<int>(type: "int", nullable: false),
+                    QuestionFileURL = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MediaURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -130,7 +116,7 @@ namespace ECM_BE.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ClaimType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ClaimValue = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
@@ -138,8 +124,8 @@ namespace ECM_BE.Migrations
                 {
                     table.PrimaryKey("PK_AspNetUserClaims", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_AspNetUserClaims_AspNetUsers_userID",
-                        column: x => x.userID,
+                        name: "FK_AspNetUserClaims_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -152,14 +138,14 @@ namespace ECM_BE.Migrations
                     LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ProviderKey = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    userID = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUserLogins", x => new { x.LoginProvider, x.ProviderKey });
                     table.ForeignKey(
-                        name: "FK_AspNetUserLogins_AspNetUsers_userID",
-                        column: x => x.userID,
+                        name: "FK_AspNetUserLogins_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -169,12 +155,12 @@ namespace ECM_BE.Migrations
                 name: "AspNetUserRoles",
                 columns: table => new
                 {
-                    userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     RoleId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.userID, x.RoleId });
+                    table.PrimaryKey("PK_AspNetUserRoles", x => new { x.UserId, x.RoleId });
                     table.ForeignKey(
                         name: "FK_AspNetUserRoles_AspNetRoles_RoleId",
                         column: x => x.RoleId,
@@ -182,8 +168,8 @@ namespace ECM_BE.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_AspNetUserRoles_AspNetUsers_userID",
-                        column: x => x.userID,
+                        name: "FK_AspNetUserRoles_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -193,17 +179,17 @@ namespace ECM_BE.Migrations
                 name: "AspNetUserTokens",
                 columns: table => new
                 {
-                    userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     LoginProvider = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.userID, x.LoginProvider, x.Name });
+                    table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
                     table.ForeignKey(
-                        name: "FK_AspNetUserTokens_AspNetUsers_userID",
-                        column: x => x.userID,
+                        name: "FK_AspNetUserTokens_AspNetUsers_UserId",
+                        column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -216,47 +202,17 @@ namespace ECM_BE.Migrations
                     UserGoalID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CategoryID = table.Column<int>(type: "int", nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime", nullable: true, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserGoals", x => x.UserGoalID);
                     table.ForeignKey(
-                        name: "FK_UserGoals_Categories",
-                        column: x => x.CategoryID,
-                        principalTable: "Categories",
-                        principalColumn: "CategoryID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_UserGoals_Users",
                         column: x => x.userID,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CoursesCategories",
-                columns: table => new
-                {
-                    CourseID = table.Column<int>(type: "int", nullable: false),
-                    CategoryID = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CoursesCategories", x => new { x.CourseID, x.CategoryID });
-                    table.ForeignKey(
-                        name: "FK_CoursesCategories_Categories",
-                        column: x => x.CategoryID,
-                        principalTable: "Categories",
-                        principalColumn: "CategoryID",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CoursesCategories_Courses",
-                        column: x => x.CourseID,
-                        principalTable: "Courses",
-                        principalColumn: "CourseID",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -268,21 +224,23 @@ namespace ECM_BE.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CourseID = table.Column<int>(type: "int", nullable: false),
-                    FollowedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    FollowedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Followings", x => x.FollowingID);
+                    table.PrimaryKey("PK_Following", x => x.FollowingID);
                     table.ForeignKey(
                         name: "FK_Followings_Courses",
                         column: x => x.CourseID,
                         principalTable: "Courses",
-                        principalColumn: "CourseID");
+                        principalColumn: "CourseID",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Followings_Users",
                         column: x => x.userID,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -293,22 +251,24 @@ namespace ECM_BE.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     CourseID = table.Column<int>(type: "int", nullable: false),
-                    Progress = table.Column<float>(type: "real", nullable: false),
-                    LastAccessed = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Progress = table.Column<double>(type: "float", nullable: false, defaultValue: 0.0),
+                    LastAccessed = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Histories", x => x.HistoryID);
+                    table.PrimaryKey("PK_History", x => x.HistoryID);
                     table.ForeignKey(
                         name: "FK_Histories_Courses",
                         column: x => x.CourseID,
                         principalTable: "Courses",
-                        principalColumn: "CourseID");
+                        principalColumn: "CourseID",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Histories_Users",
                         column: x => x.userID,
                         principalTable: "AspNetUsers",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -342,22 +302,43 @@ namespace ECM_BE.Migrations
                     CourseID = table.Column<int>(type: "int", nullable: false),
                     ReviewScore = table.Column<int>(type: "int", nullable: false),
                     ReviewContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true, defaultValueSql: "CURRENT_TIMESTAMP")
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: true, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Reviews", x => new { x.userID, x.CourseID });
                     table.ForeignKey(
                         name: "FK_Reviews_Courses",
-                        column: x => x.userID,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Reviews_Users",
                         column: x => x.CourseID,
                         principalTable: "Courses",
                         principalColumn: "CourseID",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Reviews_Users",
+                        column: x => x.userID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Categories",
+                columns: table => new
+                {
+                    CategoryID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PlacementTestTestID = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Categories", x => x.CategoryID);
+                    table.ForeignKey(
+                        name: "FK_Categories_PlacementTests_PlacementTestTestID",
+                        column: x => x.PlacementTestTestID,
+                        principalTable: "PlacementTests",
+                        principalColumn: "TestID");
                 });
 
             migrationBuilder.CreateTable(
@@ -368,13 +349,14 @@ namespace ECM_BE.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TestID = table.Column<int>(type: "int", nullable: false),
                     userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    GrammarScore = table.Column<float>(type: "real", nullable: false),
-                    VocabularyScore = table.Column<float>(type: "real", nullable: false),
-                    ListeningScore = table.Column<float>(type: "real", nullable: false),
-                    ReadingScore = table.Column<float>(type: "real", nullable: false),
-                    WritingScore = table.Column<float>(type: "real", nullable: false),
-                    OverallScore = table.Column<float>(type: "real", nullable: false),
+                    UserAnswers = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CorrectAnswers = table.Column<int>(type: "int", nullable: false),
+                    IncorrectAnswers = table.Column<int>(type: "int", nullable: false),
+                    SkippedAnswers = table.Column<int>(type: "int", nullable: false),
+                    OverallScore = table.Column<double>(type: "float", nullable: false),
+                    SectionScores = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LevelDetected = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    TimeSpent = table.Column<int>(type: "int", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
@@ -401,7 +383,9 @@ namespace ECM_BE.Migrations
                     QuizID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     LessonID = table.Column<int>(type: "int", nullable: false),
-                    Question = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    QuestionFileUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MediaUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -415,45 +399,49 @@ namespace ECM_BE.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CoursesCategories",
+                columns: table => new
+                {
+                    CourseID = table.Column<int>(type: "int", nullable: false),
+                    CategoryID = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CoursesCategories", x => new { x.CourseID, x.CategoryID });
+                    table.ForeignKey(
+                        name: "FK_CoursesCategories_Categories",
+                        column: x => x.CategoryID,
+                        principalTable: "Categories",
+                        principalColumn: "CategoryID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CoursesCategories_Courses",
+                        column: x => x.CourseID,
+                        principalTable: "Courses",
+                        principalColumn: "CourseID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AIFeedback",
                 columns: table => new
                 {
                     FeedbackID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ResultID = table.Column<int>(type: "int", nullable: false),
-                    WeakSkill = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    RcmCourses = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "getdate()")
+                    WeakSkill = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    RcmCourses = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "getdate()"),
+                    FeedbackSummary = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AIFeedbacks", x => x.FeedbackID);
+                    table.PrimaryKey("PK_AIFeedback", x => x.FeedbackID);
                     table.ForeignKey(
                         name: "FK_AIFeedbacks_TestResults",
                         column: x => x.ResultID,
                         principalTable: "TestResults",
                         principalColumn: "ResultID",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "QuizOptions",
-                columns: table => new
-                {
-                    OptionID = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    QuizID = table.Column<int>(type: "int", nullable: false),
-                    AnswerText = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    IsCorrect = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_QuizOptions", x => x.OptionID);
-                    table.ForeignKey(
-                        name: "FK_QuizOptions_Quizzes",
-                        column: x => x.QuizID,
-                        principalTable: "Quizzes",
-                        principalColumn: "QuizID",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -465,19 +453,14 @@ namespace ECM_BE.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     QuizID = table.Column<int>(type: "int", nullable: false),
                     userID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SelectedOptionID = table.Column<int>(type: "int", nullable: false),
-                    IsCorrect = table.Column<bool>(type: "bit", nullable: false),
-                    TakenAt = table.Column<DateTime>(type: "datetime", nullable: true, defaultValueSql: "getdate()")
+                    UserAnswers = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Score = table.Column<double>(type: "float", nullable: true),
+                    TotalQuestions = table.Column<int>(type: "int", nullable: true),
+                    SubmittedAt = table.Column<DateTime>(type: "datetime", nullable: true, defaultValueSql: "getdate()")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_QuizResults", x => x.ResultID);
-                    table.ForeignKey(
-                        name: "FK_QuizResults_QuizOptions",
-                        column: x => x.SelectedOptionID,
-                        principalTable: "QuizOptions",
-                        principalColumn: "OptionID",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_QuizResults_Quizzes",
                         column: x => x.QuizID,
@@ -520,14 +503,14 @@ namespace ECM_BE.Migrations
                 filter: "[NormalizedName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserClaims_userID",
+                name: "IX_AspNetUserClaims_UserId",
                 table: "AspNetUserClaims",
-                column: "userID");
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AspNetUserLogins_userID",
+                name: "IX_AspNetUserLogins_UserId",
                 table: "AspNetUserLogins",
-                column: "userID");
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserRoles_RoleId",
@@ -545,6 +528,11 @@ namespace ECM_BE.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Categories_PlacementTestTestID",
+                table: "Categories",
+                column: "PlacementTestTestID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CoursesCategories_CategoryID",
@@ -577,19 +565,9 @@ namespace ECM_BE.Migrations
                 column: "CourseID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_QuizOptions_QuizID",
-                table: "QuizOptions",
-                column: "QuizID");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_QuizResults_QuizID",
                 table: "QuizResults",
                 column: "QuizID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizResults_SelectedOptionID",
-                table: "QuizResults",
-                column: "SelectedOptionID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_QuizResults_userID",
@@ -615,11 +593,6 @@ namespace ECM_BE.Migrations
                 name: "IX_TestResults_userID",
                 table: "TestResults",
                 column: "userID");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserGoals_CategoryID",
-                table: "UserGoals",
-                column: "CategoryID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserGoals_userID",
@@ -673,19 +646,16 @@ namespace ECM_BE.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "QuizOptions");
-
-            migrationBuilder.DropTable(
                 name: "Categories");
 
             migrationBuilder.DropTable(
-                name: "PlacementTests");
+                name: "Quizzes");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
 
             migrationBuilder.DropTable(
-                name: "Quizzes");
+                name: "PlacementTests");
 
             migrationBuilder.DropTable(
                 name: "Lessons");

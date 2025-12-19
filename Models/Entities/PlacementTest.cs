@@ -11,21 +11,25 @@ public partial class PlacementTest
     [Column("TestID")]
     public int TestID { get; set; }
 
-    [Column("TestType")]
-    public string TestType { get; set; } = null!;
-
     [Column("Title")]
-    public string? Title { get; set; } 
+    public string Title { get; set; } = null!;
 
     [Column("Description")]
-    public string Description { get; set; } = null!;
+    public string? Description { get; set; }
 
-    [Column("SkillsIncluded")]
-    public string SkillsIncluded { get; set; } = null!;
+    [Column("Duration")]
+    public int Duration { get; set; }
 
-    [Column("CreatedAt")]
-    public DateTime? CreatedAt { get; set; }
+    [Column("TotalQuestions")]
+    public int TotalQuestions { get; set; }
+
+    [Column("QuestionFileURL")]
+    public string QuestionFileURL { get; set; } = null!;
+
+    [Column("MediaURL")]
+    public string MediaURL { get; set; } = null!;
 
     [InverseProperty("PlacementTest")]
     public virtual ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
+    public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 }

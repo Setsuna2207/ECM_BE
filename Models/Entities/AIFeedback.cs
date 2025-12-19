@@ -22,6 +22,9 @@ public partial class AIFeedback
     [Column("CreatedAt")]
     public DateTime CreatedAt { get; set; }
 
+    [Column("FeedbackSummary")]
+    public string? FeedbackSummary { get; set; }
+
     [ForeignKey(nameof(ResultID))]
     [InverseProperty(nameof(TestResult.AIFeedback))]
     public virtual TestResult TestResult { get; set; } = null!;

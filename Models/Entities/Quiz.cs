@@ -12,15 +12,12 @@ public partial class Quiz
     [Column("LessonID")]
     public int LessonID { get; set; }
 
-    // File hoặc nội dung văn bản chứa nhiều câu hỏi
     [Column("QuestionFileUrl")]
-    public string? QuestionFileUrl { get; set; }  // ví dụ file JSON, text, docx...
+    public string? QuestionFileUrl { get; set; }
 
-    // Nếu là bài nghe
     [Column("MediaUrl")]
-    public string? MediaUrl { get; set; }         // link audio hoặc video
+    public string? MediaUrl { get; set; } 
 
-    // (Tùy chọn) Mô tả bài quiz
     [Column("Description")]
     public string? Description { get; set; }
 

@@ -22,19 +22,6 @@ namespace ECM_BE.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("CategoryUserGoal", b =>
-                {
-                    b.Property<int>("CategoriesCategoryID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CategoryID")
-                        .HasColumnType("int");
-
-                    b.HasKey("CategoriesCategoryID", "CategoryID");
-
-                    b.ToTable("CategoryUserGoal");
-                });
-
             modelBuilder.Entity("CoursesCategories", b =>
                 {
                     b.Property<int>("CourseID")
@@ -65,8 +52,11 @@ namespace ECM_BE.Migrations
                         .HasColumnName("CreatedAt")
                         .HasDefaultValueSql("getdate()");
 
+                    b.Property<string>("FeedbackSummary")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("FeedbackSummary");
+
                     b.Property<string>("RcmCourses")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("RcmCourses");
 
@@ -75,13 +65,11 @@ namespace ECM_BE.Migrations
                         .HasColumnName("ResultID");
 
                     b.Property<string>("WeakSkill")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("WeakSkill");
 
-                    b.HasKey("FeedbackID")
-                        .HasName("PK_AIFeedbacks");
+                    b.HasKey("FeedbackID");
 
                     b.HasIndex("ResultID")
                         .IsUnique();
@@ -108,8 +96,12 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasColumnName("Name");
 
-                    b.HasKey("CategoryID")
-                        .HasName("PK_Categories");
+                    b.Property<int?>("PlacementTestTestID")
+                        .HasColumnType("int");
+
+                    b.HasKey("CategoryID");
+
+                    b.HasIndex("PlacementTestTestID");
 
                     b.ToTable("Categories", (string)null);
                 });
@@ -141,8 +133,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Title");
 
-                    b.HasKey("CourseID")
-                        .HasName("PK_Courses");
+                    b.HasKey("CourseID");
 
                     b.ToTable("Courses");
                 });
@@ -161,16 +152,17 @@ namespace ECM_BE.Migrations
                         .HasColumnName("CourseID");
 
                     b.Property<DateTime>("FollowedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("FollowedAt");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("FollowedAt")
+                        .HasDefaultValueSql("getdate()");
 
                     b.Property<string>("userID")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("userID");
 
-                    b.HasKey("FollowingID")
-                        .HasName("PK_Followings");
+                    b.HasKey("FollowingID");
 
                     b.HasIndex("CourseID");
 
@@ -193,11 +185,15 @@ namespace ECM_BE.Migrations
                         .HasColumnName("CourseID");
 
                     b.Property<DateTime>("LastAccessed")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("LastAccessed");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("LastAccessed")
+                        .HasDefaultValueSql("getdate()");
 
-                    b.Property<float>("Progress")
-                        .HasColumnType("real")
+                    b.Property<double>("Progress")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("float")
+                        .HasDefaultValue(0.0)
                         .HasColumnName("Progress");
 
                     b.Property<string>("userID")
@@ -205,8 +201,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("userID");
 
-                    b.HasKey("HistoryID")
-                        .HasName("PK_Histories");
+                    b.HasKey("HistoryID");
 
                     b.HasIndex("CourseID");
 
@@ -246,8 +241,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("VideoUrl");
 
-                    b.HasKey("LessonID")
-                        .HasName("PK_Lessons");
+                    b.HasKey("LessonID");
 
                     b.HasIndex("CourseID");
 
@@ -263,28 +257,23 @@ namespace ECM_BE.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TestID"));
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasColumnName("CreatedAt")
-                        .HasDefaultValueSql("getdate()");
-
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("Description");
 
-                    b.Property<string>("SkillsIncluded")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("SkillsIncluded");
+                    b.Property<int>("Duration")
+                        .HasColumnType("int")
+                        .HasColumnName("Duration");
 
-                    b.Property<string>("TestType")
+                    b.Property<string>("MediaURL")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("TestType");
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("MediaURL");
+
+                    b.Property<string>("QuestionFileURL")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("QuestionFileURL");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -292,8 +281,11 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(200)")
                         .HasColumnName("Title");
 
-                    b.HasKey("TestID")
-                        .HasName("PK_PlacementTests");
+                    b.Property<int>("TotalQuestions")
+                        .HasColumnType("int")
+                        .HasColumnName("TotalQuestions");
+
+                    b.HasKey("TestID");
 
                     b.ToTable("PlacementTests");
                 });
@@ -334,8 +326,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("userID");
 
-                    b.HasKey("ResultID")
-                        .HasName("PK_QuizResults");
+                    b.HasKey("ResultID");
 
                     b.HasIndex("QuizID");
 
@@ -356,9 +347,9 @@ namespace ECM_BE.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
+                        .HasColumnType("datetime")
                         .HasColumnName("CreatedAt")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        .HasDefaultValueSql("getdate()");
 
                     b.Property<string>("ReviewContent")
                         .HasColumnType("nvarchar(max)")
@@ -368,8 +359,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("int")
                         .HasColumnName("ReviewScore");
 
-                    b.HasKey("userID", "CourseID")
-                        .HasName("PK_Reviews");
+                    b.HasKey("userID", "CourseID");
 
                     b.HasIndex("CourseID");
 
@@ -385,52 +375,56 @@ namespace ECM_BE.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ResultID"));
 
+                    b.Property<int>("CorrectAnswers")
+                        .HasColumnType("int")
+                        .HasColumnName("CorrectAnswers");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
                         .HasColumnName("CreatedAt")
                         .HasDefaultValueSql("getdate()");
 
-                    b.Property<float>("GrammarScore")
-                        .HasColumnType("real")
-                        .HasColumnName("GrammarScore");
+                    b.Property<int>("IncorrectAnswers")
+                        .HasColumnType("int")
+                        .HasColumnName("IncorrectAnswers");
 
                     b.Property<string>("LevelDetected")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)")
                         .HasColumnName("LevelDetected");
 
-                    b.Property<float>("ListeningScore")
-                        .HasColumnType("real")
-                        .HasColumnName("ListeningScore");
-
-                    b.Property<float>("OverallScore")
-                        .HasColumnType("real")
+                    b.Property<double>("OverallScore")
+                        .HasColumnType("float")
                         .HasColumnName("OverallScore");
 
-                    b.Property<float>("ReadingScore")
-                        .HasColumnType("real")
-                        .HasColumnName("ReadingScore");
+                    b.Property<string>("SectionScores")
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("SectionScores");
+
+                    b.Property<int>("SkippedAnswers")
+                        .HasColumnType("int")
+                        .HasColumnName("SkippedAnswers");
 
                     b.Property<int>("TestID")
                         .HasColumnType("int")
                         .HasColumnName("TestID");
 
-                    b.Property<float>("VocabularyScore")
-                        .HasColumnType("real")
-                        .HasColumnName("VocabularyScore");
+                    b.Property<int?>("TimeSpent")
+                        .HasColumnType("int")
+                        .HasColumnName("TimeSpent");
 
-                    b.Property<float>("WritingScore")
-                        .HasColumnType("real")
-                        .HasColumnName("WritingScore");
+                    b.Property<string>("UserAnswers")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("UserAnswers");
 
                     b.Property<string>("userID")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("userID");
 
-                    b.HasKey("ResultID")
-                        .HasName("PK_TestResults");
+                    b.HasKey("ResultID");
 
                     b.HasIndex("TestID");
 
@@ -525,9 +519,10 @@ namespace ECM_BE.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserGoalID"));
 
-                    b.Property<int>("CategoryID")
-                        .HasColumnType("int")
-                        .HasColumnName("CategoryID");
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Content");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -540,8 +535,7 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(450)")
                         .HasColumnName("userID");
 
-                    b.HasKey("UserGoalID")
-                        .HasName("PK_UserGoals");
+                    b.HasKey("UserGoalID");
 
                     b.HasIndex("userID");
 
@@ -720,27 +714,11 @@ namespace ECM_BE.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasColumnName("QuestionFileUrl");
 
-                    b.HasKey("QuizID")
-                        .HasName("PK_Quizzes");
+                    b.HasKey("QuizID");
 
                     b.HasIndex("LessonID");
 
                     b.ToTable("Quizzes");
-                });
-
-            modelBuilder.Entity("UserGoalsCategories", b =>
-                {
-                    b.Property<int>("UserGoalID")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CategoryID")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserGoalID", "CategoryID");
-
-                    b.HasIndex("CategoryID");
-
-                    b.ToTable("UserGoalsCategories", (string)null);
                 });
 
             modelBuilder.Entity("CoursesCategories", b =>
@@ -772,17 +750,26 @@ namespace ECM_BE.Migrations
                     b.Navigation("TestResult");
                 });
 
+            modelBuilder.Entity("ECM_BE.Models.Entities.Category", b =>
+                {
+                    b.HasOne("ECM_BE.Models.Entities.PlacementTest", null)
+                        .WithMany("Categories")
+                        .HasForeignKey("PlacementTestTestID");
+                });
+
             modelBuilder.Entity("ECM_BE.Models.Entities.Following", b =>
                 {
                     b.HasOne("ECM_BE.Models.Entities.Course", "Course")
                         .WithMany("Followings")
                         .HasForeignKey("CourseID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_Followings_Courses");
 
                     b.HasOne("ECM_BE.Models.Entities.User", "User")
                         .WithMany("Followings")
                         .HasForeignKey("userID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_Followings_Users");
 
@@ -796,12 +783,14 @@ namespace ECM_BE.Migrations
                     b.HasOne("ECM_BE.Models.Entities.Course", "Course")
                         .WithMany("Histories")
                         .HasForeignKey("CourseID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_Histories_Courses");
 
                     b.HasOne("ECM_BE.Models.Entities.User", "User")
                         .WithMany("Histories")
                         .HasForeignKey("userID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("FK_Histories_Users");
 
@@ -850,13 +839,14 @@ namespace ECM_BE.Migrations
                         .HasForeignKey("CourseID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_Reviews_Users");
+                        .HasConstraintName("FK_Reviews_Courses");
 
                     b.HasOne("ECM_BE.Models.Entities.User", "User")
                         .WithMany("Reviews")
                         .HasForeignKey("userID")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("FK_Reviews_Courses");
+                        .HasConstraintName("FK_Reviews_Users");
 
                     b.Navigation("Course");
 
@@ -959,23 +949,6 @@ namespace ECM_BE.Migrations
                     b.Navigation("Lesson");
                 });
 
-            modelBuilder.Entity("UserGoalsCategories", b =>
-                {
-                    b.HasOne("ECM_BE.Models.Entities.Category", null)
-                        .WithMany()
-                        .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_UserGoalsCategories_Categories");
-
-                    b.HasOne("ECM_BE.Models.Entities.UserGoal", null)
-                        .WithMany()
-                        .HasForeignKey("UserGoalID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_UserGoalsCategories_UserGoals");
-                });
-
             modelBuilder.Entity("ECM_BE.Models.Entities.Course", b =>
                 {
                     b.Navigation("Followings");
@@ -994,6 +967,8 @@ namespace ECM_BE.Migrations
 
             modelBuilder.Entity("ECM_BE.Models.Entities.PlacementTest", b =>
                 {
+                    b.Navigation("Categories");
+
                     b.Navigation("TestResults");
                 });
 

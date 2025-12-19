@@ -33,9 +33,11 @@
 
   <ItemGroup>
     <Folder Include="bin\Debug\net8.0\" />
+    <Folder Include="Migrations\" />
     <Folder Include="Models\DTOs\Lesson\" />
     <Folder Include="Models\DTOs\QuizResult\" />
     <Folder Include="Models\DTOs\Quiz\" />
+    <Folder Include="Models\DTOs\UserGoal\" />
     <Folder Include="obj\Debug\net8.0\refint\" />
     <Folder Include="obj\Debug\net8.0\ref\" />
     <Folder Include="obj\Debug\net8.0\staticwebassets\" />

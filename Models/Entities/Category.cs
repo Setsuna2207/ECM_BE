@@ -17,9 +17,6 @@ public partial class Category
 
     [Column("Description")]
     public string? Description { get; set; }
-
-    [InverseProperty("Categories")]
-    public virtual ICollection<UserGoal> UserGoals { get; set; } = new List<UserGoal>();
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
 
 }

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace ECM_BE.Data;
 
 public partial class AppDbContext : IdentityDbContext<User>
@@ -11,11 +10,13 @@ public partial class AppDbContext : IdentityDbContext<User>
     public AppDbContext()
     {
     }
+
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
-    public virtual DbSet<User> User { get; set; }
+
+    public virtual DbSet<User> Users { get; set; }
     public virtual DbSet<UserGoal> UserGoals { get; set; }
     public virtual DbSet<Category> Categories { get; set; }
     public virtual DbSet<Course> Courses { get; set; }
@@ -33,38 +34,36 @@ public partial class AppDbContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder);
 
-        // phân quyền
-        List<IdentityRole> roles = new List<IdentityRole>
+        // Role Seeding
+        var roles = new List<IdentityRole>
         {
-            new IdentityRole { Id = "Admin", Name = "Admin",  NormalizedName = "ADMIN" },
-            new IdentityRole { Id = "User", Name = "User",  NormalizedName = "USER" },
+            new IdentityRole { Id = "Admin", Name = "Admin", NormalizedName = "ADMIN" },
+            new IdentityRole { Id = "User", Name = "User", NormalizedName = "USER" },
         };
         modelBuilder.Entity<IdentityRole>().HasData(roles);
 
-        // Category
+        // Category Configuration
         modelBuilder.Entity<Category>(entity =>
         {
             entity.ToTable("Categories");
-            entity.HasKey(e => e.CategoryID).HasName("PK_Categories");
-            entity.Property(e => e.CategoryID).HasColumnName("CategoryID");
-
+            entity.HasKey(e => e.CategoryID);
             entity.Property(e => e.Name)
                 .IsRequired()
-                .HasMaxLength(100)
-                .HasColumnName("Name");
-
+                .HasMaxLength(100);
             entity.Property(e => e.Description)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("Description");
+                .HasColumnType("nvarchar(max)");
         });
 
-        // Course
+        // Course Configuration
         modelBuilder.Entity<Course>(entity =>
         {
-            entity.HasKey(e => e.CourseID).HasName("PK_Courses");
+            entity.HasKey(e => e.CourseID);
+
+            // Many-to-Many: Course <-> Category
             entity.HasMany(c => c.Categories)
                 .WithMany(cat => cat.Courses)
-                .UsingEntity<Dictionary<string, object>>("CoursesCategories",
+                .UsingEntity<Dictionary<string, object>>(
+                    "CoursesCategories",
                     j => j
                         .HasOne<Category>()
                         .WithMany()
@@ -78,58 +77,25 @@ public partial class AppDbContext : IdentityDbContext<User>
                         .HasConstraintName("FK_CoursesCategories_Courses")
                         .OnDelete(DeleteBehavior.Cascade),
                     j =>
-                        {
-                            j.HasKey("CourseID", "CategoryID");
-                            j.ToTable("CoursesCategories");
-                        });
+                    {
+                        j.HasKey("CourseID", "CategoryID");
+                        j.ToTable("CoursesCategories");
+                    });
         });
 
-        // Following
-        modelBuilder.Entity<Following>(entity =>
-        {
-            entity.HasKey(e => e.FollowingID).HasName("PK_Followings");
-            entity.HasOne(d => d.User)
-                .WithMany(p => p.Followings)
-                .HasForeignKey(d => d.userID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Followings_Users");
-            entity.HasOne(d => d.Course)
-                .WithMany(p => p.Followings)
-                .HasForeignKey(d => d.CourseID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Followings_Courses");
-        });
-
-
-        // History
-        modelBuilder.Entity<History>(entity =>
-        {
-            entity.HasKey(e => e.HistoryID).HasName("PK_Histories");
-            entity.HasOne(d => d.User)
-                .WithMany(p => p.Histories)
-                .HasForeignKey(d => d.userID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Histories_Users");
-            entity.HasOne(d => d.Course)
-                .WithMany(p => p.Histories)
-                .HasForeignKey(d => d.CourseID)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Histories_Courses");
-        });
-
-        // Lesson 
+        // Lesson Configuration
         modelBuilder.Entity<Lesson>(entity =>
         {
-            entity.HasKey(e => e.LessonID).HasName("PK_Lessons");
+            entity.HasKey(e => e.LessonID);
 
-            // 1–n: Course - Lessons
+            // 1-n: Course -> Lessons
             entity.HasOne(e => e.Course)
                 .WithMany(c => c.Lessons)
                 .HasForeignKey(e => e.CourseID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Lessons_Courses");
 
-            // 1–n: Lesson - Quizzes
+            // 1-n: Lesson -> Quizzes
             entity.HasMany(e => e.Quizzes)
                 .WithOne(q => q.Lesson)
                 .HasForeignKey(q => q.LessonID)
@@ -137,41 +103,18 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasConstraintName("FK_Quizzes_Lessons");
         });
 
-        // Review
-        modelBuilder.Entity<Review>(entity =>
-        {
-            entity.HasKey(e => new { e.userID, e.CourseID }).HasName("PK_Reviews");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
-            entity.HasOne(d => d.Course).WithMany(p => p.Reviews)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_Reviews_Users");
-            entity.HasOne(d => d.User).WithMany(p => p.Reviews)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Reviews_Courses");
-        });
-
-        // Quiz
+        // Quiz Configuration
         modelBuilder.Entity<Quiz>(entity =>
         {
-            entity.HasKey(e => e.QuizID).HasName("PK_Quizzes");
-
-            entity.Property(e => e.QuizID).HasColumnName("QuizID");
-            entity.Property(e => e.LessonID).HasColumnName("LessonID");
-
-            // Thông tin quiz
+            entity.HasKey(e => e.QuizID);
             entity.Property(e => e.QuestionFileUrl)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("QuestionFileUrl");
-
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.MediaUrl)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("MediaUrl");
-
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.Description)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("Description");
+                .HasColumnType("nvarchar(max)");
 
-            // n-1: Quiz - Lesson
+            // n-1: Quiz -> Lesson
             entity.HasOne(e => e.Lesson)
                 .WithMany(l => l.Quizzes)
                 .HasForeignKey(e => e.LessonID)
@@ -179,40 +122,26 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasConstraintName("FK_Quizzes_Lessons");
         });
 
-        // QuizResult (đã bỏ SelectedOptionID, IsCorrect)
+        // QuizResult Configuration
         modelBuilder.Entity<QuizResult>(entity =>
         {
-            entity.HasKey(e => e.ResultID).HasName("PK_QuizResults");
-
-            entity.Property(e => e.ResultID).HasColumnName("ResultID");
-            entity.Property(e => e.QuizID).HasColumnName("QuizID");
-            entity.Property(e => e.userID).HasColumnName("userID");
-
-            // Dữ liệu lưu kết quả user
+            entity.HasKey(e => e.ResultID);
             entity.Property(e => e.UserAnswers)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("UserAnswers");
-
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.Score)
-                .HasColumnType("float")
-                .HasColumnName("Score");
-
-            entity.Property(e => e.TotalQuestions)
-                .HasColumnName("TotalQuestions");
-
+                .HasColumnType("float");
             entity.Property(e => e.SubmittedAt)
                 .HasColumnType("datetime")
-                .HasDefaultValueSql("getdate()")
-                .HasColumnName("SubmittedAt");
+                .HasDefaultValueSql("getdate()");
 
-            // 1-n: QuizResult - Quiz
+            // n-1: QuizResult -> Quiz
             entity.HasOne(e => e.Quiz)
                 .WithMany(q => q.QuizResults)
                 .HasForeignKey(e => e.QuizID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_QuizResults_Quizzes");
 
-            // 1-n: QuizResult - User
+            // n-1: QuizResult -> User
             entity.HasOne(e => e.User)
                 .WithMany(u => u.QuizResults)
                 .HasForeignKey(e => e.userID)
@@ -220,80 +149,135 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasConstraintName("FK_QuizResults_Users");
         });
 
-        // PlacementTest
-        modelBuilder.Entity<PlacementTest>(entity =>
+        // Following Configuration
+        modelBuilder.Entity<Following>(entity =>
         {
-            entity.HasKey(e => e.TestID).HasName("PK_PlacementTests");
-            entity.Property(e => e.TestID).HasColumnName("TestID");
-
-            entity.Property(e => e.TestType)
-                .IsRequired()
-                .HasMaxLength(50)
-                .HasColumnName("TestType");
-
-            entity.Property(e => e.Title)
-                .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnName("Title");
-
-            entity.Property(e => e.Description)
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("Description");
-
-            entity.Property(e => e.SkillsIncluded)
-                .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnName("SkillsIncluded");
-
-            entity.Property(e => e.CreatedAt)
+            entity.HasKey(e => e.FollowingID);
+            entity.Property(e => e.FollowedAt)
                 .HasColumnType("datetime")
-                .HasDefaultValueSql("getdate()")
-                .HasColumnName("CreatedAt");
+                .HasDefaultValueSql("getdate()");
 
-            entity.HasMany(e => e.TestResults)
-                .WithOne(tr => tr.PlacementTest)
-                .HasForeignKey(tr => tr.TestID)
+            // n-1: Following -> User
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.Followings)
+                .HasForeignKey(d => d.userID)
                 .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("FK_TestResults_PlacementTests");
+                .HasConstraintName("FK_Followings_Users");
+
+            // n-1: Following -> Course
+            entity.HasOne(d => d.Course)
+                .WithMany(p => p.Followings)
+                .HasForeignKey(d => d.CourseID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Followings_Courses");
         });
 
-
-        // TestResult
-        modelBuilder.Entity<TestResult>(entity =>
+        // History Configuration
+        modelBuilder.Entity<History>(entity =>
         {
-            entity.HasKey(e => e.ResultID).HasName("PK_TestResults");
-            entity.Property(e => e.ResultID).HasColumnName("ResultID");
-            entity.Property(e => e.TestID).HasColumnName("TestID");
-            entity.Property(e => e.userID).HasColumnName("userID");
+            entity.HasKey(e => e.HistoryID);
+            entity.Property(e => e.Progress)
+                .HasColumnType("float")
+                .HasDefaultValue(0f);
+            entity.Property(e => e.LastAccessed)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("getdate()");
 
-            entity.Property(e => e.GrammarScore).HasColumnName("GrammarScore");
-            entity.Property(e => e.VocabularyScore).HasColumnName("VocabularyScore");
-            entity.Property(e => e.ListeningScore).HasColumnName("ListeningScore");
-            entity.Property(e => e.ReadingScore).HasColumnName("ReadingScore");
-            entity.Property(e => e.WritingScore).HasColumnName("WritingScore");
-            entity.Property(e => e.LevelDetected)
-                .HasMaxLength(20)
-                .HasColumnName("LevelDetected");
+            // n-1: History -> User
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.Histories)
+                .HasForeignKey(d => d.userID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Histories_Users");
 
+            // n-1: History -> Course
+            entity.HasOne(d => d.Course)
+                .WithMany(p => p.Histories)
+                .HasForeignKey(d => d.CourseID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Histories_Courses");
+        });
+
+        // Review Configuration
+        modelBuilder.Entity<Review>(entity =>
+        {
+            entity.HasKey(e => new { e.userID, e.CourseID });
+            entity.Property(e => e.ReviewScore)
+                .HasColumnType("int");
+            entity.Property(e => e.ReviewContent)
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("getdate()");
 
-            // n-1: TestResult - PlacementTest
+            // n-1: Review -> User
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.Reviews)
+                .HasForeignKey(d => d.userID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Reviews_Users");
+
+            // n-1: Review -> Course
+            entity.HasOne(d => d.Course)
+                .WithMany(p => p.Reviews)
+                .HasForeignKey(d => d.CourseID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_Reviews_Courses");
+        });
+
+        // PlacementTest Configuration
+        modelBuilder.Entity<PlacementTest>(entity =>
+        {
+            entity.HasKey(e => e.TestID);
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(200);
+            entity.Property(e => e.Description)
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Duration)
+                .HasColumnName("Duration");
+            entity.Property(e => e.TotalQuestions)
+                .HasColumnName("TotalQuestions");
+            entity.Property(e => e.QuestionFileURL)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.MediaURL)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+        });
+
+        // TestResult Configuration
+        modelBuilder.Entity<TestResult>(entity =>
+        {
+            entity.HasKey(e => e.ResultID);
+            entity.Property(e => e.UserAnswers)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.SectionScores)
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.LevelDetected)
+                .HasMaxLength(20);
+            entity.Property(e => e.OverallScore)
+                .HasColumnType("float");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("getdate()");
+
+            // n-1: TestResult -> PlacementTest
             entity.HasOne(e => e.PlacementTest)
                 .WithMany(pt => pt.TestResults)
                 .HasForeignKey(e => e.TestID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_TestResults_PlacementTests");
 
-            // n-1: TestResult - User
+            // n-1: TestResult -> User
             entity.HasOne(e => e.User)
                 .WithMany(u => u.TestResults)
                 .HasForeignKey(e => e.userID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_TestResults_Users");
 
-            // 1-1: TestResult - AIFeedback
+            // 1-1: TestResult <-> AIFeedback
             entity.HasOne(tr => tr.AIFeedback)
                 .WithOne(af => af.TestResult)
                 .HasForeignKey<AIFeedback>(af => af.ResultID)
@@ -301,28 +285,21 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasConstraintName("FK_AIFeedbacks_TestResults");
         });
 
-        // AIFeedback
+        // AIFeedback Configuration
         modelBuilder.Entity<AIFeedback>(entity =>
         {
-            entity.HasKey(e => e.FeedbackID).HasName("PK_AIFeedbacks");
-            entity.Property(e => e.FeedbackID).HasColumnName("FeedbackID");
-            entity.Property(e => e.ResultID).HasColumnName("ResultID");
-
+            entity.HasKey(e => e.FeedbackID);
             entity.Property(e => e.WeakSkill)
-                .IsRequired()
-                .HasMaxLength(50)
-                .HasColumnName("WeakSkill");
-
+                .HasMaxLength(50);
             entity.Property(e => e.RcmCourses)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)")
-                .HasColumnName("RcmCourses");
-
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.FeedbackSummary)
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("datetime")
-                .HasDefaultValueSql("getdate()")
-                .HasColumnName("CreatedAt");
+                .HasDefaultValueSql("getdate()");
 
+            // 1-1: AIFeedback <-> TestResult
             entity.HasOne(e => e.TestResult)
                 .WithOne(tr => tr.AIFeedback)
                 .HasForeignKey<AIFeedback>(e => e.ResultID)
@@ -330,50 +307,28 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasConstraintName("FK_AIFeedbacks_TestResults");
         });
 
-        // UserGoal
+        // UserGoal Configuration
         modelBuilder.Entity<UserGoal>(entity =>
         {
-            entity.HasKey(e => e.UserGoalID).HasName("PK_UserGoals");
-            entity.Property(e => e.UserGoalID).HasColumnName("UserGoalID");
-            entity.Property(e => e.userID).HasColumnName("userID");
-            entity.Property(e => e.CategoryID).HasColumnName("CategoryID");
-
+            entity.HasKey(e => e.UserGoalID);
+            entity.Property(e => e.Content)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
             entity.Property(e => e.UpdatedAt)
                 .HasColumnType("datetime")
                 .HasDefaultValueSql("getdate()");
 
-            // 1-n: User - UserGoal
+            // n-1: UserGoal -> User
             entity.HasOne(e => e.User)
                 .WithMany(u => u.UserGoals)
                 .HasForeignKey(e => e.userID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_UserGoals_Users");
-
-            // n-n: UserGoal – Category
-            entity.HasMany(ug => ug.Categories)
-                .WithMany(c => c.UserGoals)
-                .UsingEntity<Dictionary<string, object>>("UserGoalsCategories",
-                    j => j
-                        .HasOne<Category>()
-                        .WithMany()
-                        .HasForeignKey("CategoryID")
-                        .HasConstraintName("FK_UserGoalsCategories_Categories")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    j => j
-                        .HasOne<UserGoal>()
-                        .WithMany()
-                        .HasForeignKey("UserGoalID")
-                        .HasConstraintName("FK_UserGoalsCategories_UserGoals")
-                        .OnDelete(DeleteBehavior.Cascade),
-                    j =>
-                    {
-                        j.HasKey("UserGoalID", "CategoryID");
-                        j.ToTable("UserGoalsCategories");
-                    });
         });
 
+        OnModelCreatingPartial(modelBuilder);
     }
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 
+    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
 
