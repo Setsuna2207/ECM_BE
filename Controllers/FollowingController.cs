@@ -38,5 +38,14 @@ namespace ECM_BE.Controllers
             var isFollowing = await _followingService.ToggleFollowingAsync(user.Id, courseId);
             return Ok(new { status = isFollowing ? "Added" : "Removed" });
         }
+        [HttpDelete("{courseId}")]
+        [Authorize(Policy = "UserPolicy")]
+        public async Task<IActionResult> RemoveFollowing(int courseId)
+        {
+            var userName = User.Identity?.Name;
+            var user = await _userManager.FindByNameAsync(userName);
+            await _followingService.RemoveFollowingAsync(user.Id, courseId);
+            return NoContent();
+        }
     }
 }

@@ -1,0 +1,10 @@
+﻿namespace ECM_BE.Models.DTOs.Quiz
+{
+    public class CreateQuizRequestDTO
+    {
+        public int LessonID { get; set; }
+        public string? QuestionFileUrl { get; set; }
+        public string? MediaUrl { get; set; }
+        public string? Description { get; set; }
+    }
+}

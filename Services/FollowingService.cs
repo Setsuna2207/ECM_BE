@@ -64,5 +64,15 @@ namespace ECM_BE.Services
                 return true; // Đã thêm
             }
         }
-    }
+        public async Task RemoveFollowingAsync(string userId, int courseId)
+        {
+            var existingFollowing = await _context.Followings
+                .FirstOrDefaultAsync(f => f.userID == userId && f.CourseID == courseId);
+            if (existingFollowing != null)
+            {
+                _context.Followings.Remove(existingFollowing);
+                await _context.SaveChangesAsync();
+            }
+        }
+}
 }

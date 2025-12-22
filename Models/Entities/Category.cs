@@ -18,5 +18,4 @@ public partial class Category
     [Column("Description")]
     public string? Description { get; set; }
     public virtual ICollection<Course> Courses { get; set; } = new List<Course>();
-
 }
