@@ -1,9 +1,9 @@
 ﻿using ECM_BE.Data;
 using ECM_BE.Models.DTOs.Lesson;
 using ECM_BE.Models.Entities;
+using ECM_BE.Models.Mapper;
 using ECM_BE.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using ECM_BE.Models.Mapper;
 
 namespace ECM_BE.Services
 {
@@ -18,18 +18,11 @@ namespace ECM_BE.Services
 
         public async Task<List<AllLessonDTO>> GetAllLessonsAsync()
         {
-            return await _context.Lessons
+            var lessons = await _context.Lessons
                 .AsNoTracking()
-                .Select(l => new AllLessonDTO
-                {
-                    LessonID = l.LessonID,
-                    CourseID = l.CourseID,
-                    Title = l.Title,
-                    VideoUrl = l.VideoUrl,
-                    DocumentUrl = l.DocumentUrl,
-                    OrderIndex = l.OrderIndex
-                })
                 .ToListAsync();
+
+            return lessons.Select(l => l.ToAllLessonDto()).ToList();
         }
 
         public async Task<LessonDTO> GetLessonByCourseIdAsync(int courseId)
@@ -58,12 +51,12 @@ namespace ECM_BE.Services
 
         public async Task<LessonDTO> CreateLessonAsync(CreateLessonRequestDTO requestDto)
         {
-            var lesson = requestDto.ToLessonFromCreate(); 
+            var lesson = requestDto.ToLessonFromCreate();
 
             _context.Lessons.Add(lesson);
             await _context.SaveChangesAsync();
 
-            return lesson.ToLessonDto(); 
+            return lesson.ToLessonDto();
         }
 
         public async Task<LessonDTO> UpdateLessonAsync(int lessonId, UpdateLessonDTO requestDto)
@@ -74,10 +67,7 @@ namespace ECM_BE.Services
             if (lesson == null)
                 throw new Exception("Lesson not found");
 
-            lesson.Title = requestDto.Title;
-            lesson.VideoUrl = requestDto.VideoUrl;
-            lesson.DocumentUrl = requestDto.DocumentUrl;
-            lesson.OrderIndex = requestDto.OrderIndex;
+            lesson.UpdateFromDto(requestDto);
 
             await _context.SaveChangesAsync();
 

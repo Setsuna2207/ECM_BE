@@ -19,7 +19,7 @@ if (dbProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"),
-            sqlOptions => sqlOptions.MigrationsAssembly("electro-shop-backend")));
+            sqlOptions => sqlOptions.MigrationsAssembly("ECM_BE")));
 }
 else
 {
@@ -133,6 +133,7 @@ builder.Services.AddScoped<IUserGoalService, UserGoalService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<ILessonService, LessonService>();
 builder.Services.AddScoped<IPlacementTestService, PlacementTestService>();
 builder.Services.AddScoped<IFollowingService, FollowingService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();
