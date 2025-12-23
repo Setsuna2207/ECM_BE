@@ -132,6 +132,7 @@ builder.Services.AddScoped<IQuizResult, QuizResultService>();
 builder.Services.AddScoped<IUserGoalService, UserGoalService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IPlacementTestService, PlacementTestService>();
 builder.Services.AddScoped<IFollowingService, FollowingService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();

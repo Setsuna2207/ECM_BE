@@ -19,8 +19,8 @@ namespace ECM_BE.Controllers
         }
         [HttpPost("convert-docx")]
         public async Task<IActionResult> ConvertDocxToJson(
-            IFormFile file,              // ← Removed [FromForm]
-            [FromForm] string fileType)  // ← Keep [FromForm] for string
+            IFormFile file,             
+            [FromForm] string fileType)  
         {
             try
             {
