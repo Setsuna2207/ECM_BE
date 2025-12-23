@@ -31,5 +31,4 @@ public partial class PlacementTest
 
     [InverseProperty("PlacementTest")]
     public virtual ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
-    public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
 }

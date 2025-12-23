@@ -34,19 +34,19 @@ namespace ECM_BE.Configuration
             });
 
             options.AddSecurityRequirement(new OpenApiSecurityRequirement
-        {
             {
-                new OpenApiSecurityScheme
                 {
-                    Reference = new OpenApiReference
+                    new OpenApiSecurityScheme
                     {
-                        Type=ReferenceType.SecurityScheme,
-                        Id="Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
+                        Reference = new OpenApiReference
+                        {
+                            Type=ReferenceType.SecurityScheme,
+                            Id="Bearer"
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
         }
 
         public void Configure(string? name, SwaggerGenOptions options)
@@ -58,7 +58,7 @@ namespace ECM_BE.Configuration
         {
             var info = new OpenApiInfo()
             {
-                Title = "Electro Shop API",
+                Title = "English Courses Manangement API",
                 Version = description.ApiVersion.ToString()
             };
 
