@@ -48,8 +48,16 @@ namespace ECM_BE.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var result = await _courseService.CreateCourseAsync(requestDto);
-            return Ok(result);
+
+            try
+            {
+                var result = await _courseService.CreateCourseAsync(requestDto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{courseId}")]
@@ -66,11 +74,11 @@ namespace ECM_BE.Controllers
             }
             catch (NotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Lỗi khi cập nhật khoá học.");
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -85,11 +93,11 @@ namespace ECM_BE.Controllers
             }
             catch (NotFoundException ex)
             {
-                return NotFound(ex.Message);
+                return NotFound(new { message = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return StatusCode(500, "Lỗi khi xóa khoá học.");
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

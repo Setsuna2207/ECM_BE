@@ -1,5 +1,12 @@
 ﻿namespace ECM_BE.Models.DTOs.Course
 {
+    public class CategoryDTO
+    {
+        public int CategoryID { get; set; }
+        public string Name { get; set; } = null!;
+        public string Description { get; set; } = null!;
+    }
+
     public class AllCourseDTO
     {
         public int CourseID { get; set; }
@@ -13,7 +20,7 @@
         public int TotalReviews { get; set; }
         public double? AverageRating { get; set; }
 
-        // Danh mục khóa học
-        public List<string>? Categories { get; set; }
+        // Danh mục khóa học - Changed to List<CategoryDTO>
+        public List<CategoryDTO>? Categories { get; set; }
     }
 }
