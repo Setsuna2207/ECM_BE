@@ -11,31 +11,35 @@ namespace ECM_BE.Controllers
     public class CourseController : ControllerBase
     {
         private readonly ICourseService _courseService;
+
         public CourseController(ICourseService courseService)
         {
             _courseService = courseService;
-
         }
+
         [HttpGet]
         public async Task<IActionResult> GetAllCourses()
         {
             var courses = await _courseService.GetAllCourseAsync();
             return Ok(courses);
         }
-        [HttpGet("{CourseID}")]
-        public async Task<IActionResult> GetCourseByID(int CourseID)
+
+        [HttpGet("{courseId}")]
+        public async Task<IActionResult> GetCourseByID(int courseId)
         {
-            var course = await _courseService.GetCourseByIdAsync(CourseID);
+            var course = await _courseService.GetCourseByIdAsync(courseId);
             if (course == null) return NotFound("Không tìm thấy khóa học");
             return Ok(course);
         }
-        [HttpGet("Category/{CategoryID}")]
-        public async Task<IActionResult> GetCoursesByCategory(int CategoryID)
+
+        [HttpGet("Category/{categoryId}")]
+        public async Task<IActionResult> GetCoursesByCategory(int categoryId)
         {
-            var course = await _courseService.GetCoursesByCategoryAsync(CategoryID);
+            var course = await _courseService.GetCoursesByCategoryAsync(categoryId);
             if (course == null) return NotFound("Không tìm thấy khóa học");
             return Ok(course);
         }
+
         [HttpPost]
         [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> CreateCourse([FromBody] CreateCourseRequestDTO requestDto)
@@ -47,16 +51,17 @@ namespace ECM_BE.Controllers
             var result = await _courseService.CreateCourseAsync(requestDto);
             return Ok(result);
         }
-        [HttpPut("{CourseID}")]
+
+        [HttpPut("{courseId}")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UpdateCourse(int id, [FromBody] UpdateCourse requestDto)
+        public async Task<IActionResult> UpdateCourse(int courseId, [FromBody] UpdateCourse requestDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var result = await _courseService.UpdateCourseAsync(id, requestDto);
+                var result = await _courseService.UpdateCourseAsync(courseId, requestDto);
                 return Ok(result);
             }
             catch (NotFoundException ex)
@@ -68,7 +73,8 @@ namespace ECM_BE.Controllers
                 return StatusCode(500, "Lỗi khi cập nhật khoá học.");
             }
         }
-        [HttpDelete("{id}")]
+
+        [HttpDelete("{courseId}")]
         [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> DeleteCourse(int courseId)
         {
