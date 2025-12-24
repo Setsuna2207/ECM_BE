@@ -25,17 +25,18 @@ namespace ECM_BE.Services
             return lessons.Select(l => l.ToAllLessonDto()).ToList();
         }
 
-        public async Task<LessonDTO> GetLessonByCourseIdAsync(int courseId)
+        public async Task<List<LessonDTO>> GetLessonByCourseIdAsync(int courseId)
         {
-            var lesson = await _context.Lessons
+            var lessons = await _context.Lessons
                 .Where(l => l.CourseID == courseId)
                 .OrderBy(l => l.OrderIndex)
-                .FirstOrDefaultAsync();
+                .AsNoTracking()
+                .ToListAsync(); 
 
-            if (lesson == null)
-                throw new Exception("Lesson not found");
+            if (!lessons.Any())
+                throw new Exception("No lessons found for this course");
 
-            return lesson.ToLessonDto();
+            return lessons.Select(l => l.ToLessonDto()).ToList();
         }
 
         public async Task<LessonDTO> GetLessonByIdAsync(int lessonId)

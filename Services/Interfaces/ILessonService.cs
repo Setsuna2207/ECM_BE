@@ -5,7 +5,7 @@ namespace ECM_BE.Services.Interfaces
     public interface ILessonService
     {
         Task<List<AllLessonDTO>> GetAllLessonsAsync();
-        Task<LessonDTO> GetLessonByCourseIdAsync(int courseId);
+        Task<List<LessonDTO>> GetLessonByCourseIdAsync(int courseId);
         Task<LessonDTO> GetLessonByIdAsync(int lessonId);
         Task<LessonDTO> CreateLessonAsync(CreateLessonRequestDTO requestDto);
         Task<LessonDTO> UpdateLessonAsync(int lessonId, UpdateLessonDTO requestDto);
