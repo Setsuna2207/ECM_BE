@@ -10,10 +10,12 @@ namespace ECM_BE.Controllers
     public class LessonController : ControllerBase
     {
         private readonly ILessonService _lessonService;
+        private readonly ILogger<LessonController> _logger;
 
-        public LessonController(ILessonService lessonService)
+        public LessonController(ILessonService lessonService, ILogger<LessonController> logger)
         {
             _lessonService = lessonService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -33,7 +35,8 @@ namespace ECM_BE.Controllers
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                _logger.LogError(ex, "Error getting lesson by ID: {LessonId}", lessonId);
+                return NotFound(new { message = ex.Message });
             }
         }
 
@@ -42,12 +45,13 @@ namespace ECM_BE.Controllers
         {
             try
             {
-                var lesson = await _lessonService.GetLessonByCourseIdAsync(courseId);
-                return Ok(lesson);
+                var lessons = await _lessonService.GetLessonByCourseIdAsync(courseId);
+                return Ok(lessons);
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                _logger.LogError(ex, "Error getting lessons for course: {CourseId}", courseId);
+                return NotFound(new { message = ex.Message });
             }
         }
 
@@ -56,16 +60,30 @@ namespace ECM_BE.Controllers
         public async Task<IActionResult> CreateLesson([FromBody] CreateLessonRequestDTO requestDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                _logger.LogWarning("Validation failed for CreateLesson: {Errors}", string.Join(", ", errors));
+                return BadRequest(new { message = "Validation failed", errors = errors });
+            }
 
             try
             {
+                _logger.LogInformation("Creating lesson: {@RequestDto}", requestDto);
+
                 var result = await _lessonService.CreateLessonAsync(requestDto);
+
+                _logger.LogInformation("Lesson created successfully: {LessonId}", result.LessonID);
+
                 return CreatedAtAction(nameof(GetLessonById), new { lessonId = result.LessonID }, result);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError(ex, "Error creating lesson: {@RequestDto}", requestDto);
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -74,16 +92,30 @@ namespace ECM_BE.Controllers
         public async Task<IActionResult> UpdateLesson(int lessonId, [FromBody] UpdateLessonDTO requestDto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                _logger.LogWarning("Validation failed for UpdateLesson: {Errors}", string.Join(", ", errors));
+                return BadRequest(new { message = "Validation failed", errors = errors });
+            }
 
             try
             {
+                _logger.LogInformation("Updating lesson {LessonId}: {@RequestDto}", lessonId, requestDto);
+
                 var result = await _lessonService.UpdateLessonAsync(lessonId, requestDto);
+
+                _logger.LogInformation("Lesson updated successfully: {LessonId}", lessonId);
+
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                _logger.LogError(ex, "Error updating lesson {LessonId}: {@RequestDto}", lessonId, requestDto);
+                return NotFound(new { message = ex.Message });
             }
         }
 
@@ -93,12 +125,18 @@ namespace ECM_BE.Controllers
         {
             try
             {
+                _logger.LogInformation("Deleting lesson: {LessonId}", lessonId);
+
                 await _lessonService.DeleteLessonAsync(lessonId);
+
+                _logger.LogInformation("Lesson deleted successfully: {LessonId}", lessonId);
+
                 return NoContent();
             }
             catch (Exception ex)
             {
-                return NotFound(ex.Message);
+                _logger.LogError(ex, "Error deleting lesson: {LessonId}", lessonId);
+                return NotFound(new { message = ex.Message });
             }
         }
     }
