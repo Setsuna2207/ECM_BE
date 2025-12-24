@@ -7,6 +7,7 @@ using ECM_BE.Models.Entities;
 using ECM_BE.Services;
 using ECM_BE.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -146,6 +147,22 @@ builder.Services.AddHttpContextAccessor();
 // Email configuration
 var emailConfig = builder.Configuration.GetSection("EmailConfiguration").Get<EmailConfiguration>();
 builder.Services.AddSingleton(emailConfig);
+
+// Configure FormOptions for large file uploads
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 5_368_709_120; // 5 GB
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
+// Configure Kestrel server limits
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 5_368_709_120; // 5 GB
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(10);
+});
 
 var app = builder.Build();
 
