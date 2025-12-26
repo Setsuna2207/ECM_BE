@@ -91,7 +91,7 @@ namespace ECM_BE.Controllers
 
         [HttpPost("upload")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadQuizFile(IFormFile file, [FromQuery] int lessonId, [FromQuery] string description = "")
+        public async Task<IActionResult> UploadQuizFile(IFormFile file, [FromQuery] int lessonId, [FromQuery] string description = "", [FromQuery] int? quizId = null)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
@@ -134,17 +134,34 @@ namespace ECM_BE.Controllers
                     if (questions == null || questions.Count == 0)
                         return BadRequest("No questions found in file");
 
-                    // Create quiz with all data in one go
-                    var createDto = new CreateQuizRequestDTO
-                    {
-                        LessonID = lessonId,
-                        QuestionFileUrl = "", // No file stored
-                        MediaUrl = "", // Can be added later
-                        Description = description,
-                        Questions = questions // Save questions to DB
-                    };
+                    QuizDTO result;
 
-                    var result = await _quizService.CreateQuizAsync(createDto);
+                    if (quizId.HasValue && quizId.Value > 0)
+                    {
+                        // Update existing quiz
+                        var updateDto = new UpdateQuizDTO
+                        {
+                            LessonID = lessonId,
+                            QuestionFileUrl = "",
+                            MediaUrl = "",
+                            Description = description,
+                            Questions = questions
+                        };
+                        result = await _quizService.UpdateQuizAsync(quizId.Value, updateDto);
+                    }
+                    else
+                    {
+                        // Create new quiz
+                        var createDto = new CreateQuizRequestDTO
+                        {
+                            LessonID = lessonId,
+                            QuestionFileUrl = "",
+                            MediaUrl = "",
+                            Description = description,
+                            Questions = questions
+                        };
+                        result = await _quizService.CreateQuizAsync(createDto);
+                    }
 
                     return Ok(new
                     {
@@ -163,32 +180,42 @@ namespace ECM_BE.Controllers
 
         [HttpPost("upload-media")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadMediaFile(IFormFile file)
+        public async Task<IActionResult> UploadMediaFile(IFormFile file, [FromQuery] int quizId)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
             try
             {
-                var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
-                using (var stream = new FileStream(uploadPath, FileMode.Create))
+                using (var memoryStream = new MemoryStream())
                 {
-                    await file.CopyToAsync(stream);
+                    await file.CopyToAsync(memoryStream);
+                    var fileBytes = memoryStream.ToArray();
+
+                    // Return base64 encoded file
+                    var base64String = Convert.ToBase64String(fileBytes);
+                    var mimeType = file.ContentType;
+
+                    // Optionally save the media URL to the quiz in DB
+                    var mediaUrl = $"data:{mimeType};base64,{base64String}";
+
+                    // If you want to save it to the quiz:
+                    // var updateDto = new UpdateQuizDTO { MediaUrl = mediaUrl };
+                    // await _quizService.UpdateQuizAsync(quizId, updateDto);
+
+                    return Ok(new
+                    {
+                        mediaUrl = mediaUrl,
+                        fileName = file.FileName
+                    });
                 }
-
-                return Ok(new
-                {
-                    mediaUrl = $"/uploads/{fileName}"
-                });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error uploading media: {ex.Message}");
+                return BadRequest($"Error processing media: {ex.Message}");
             }
         }
+
 
     }
 }
