@@ -7,7 +7,7 @@
         public string Question { get; set; } = null!;
         public string? Passage { get; set; }
         public List<string>? Options { get; set; }
-        public int? CorrectAnswer { get; set; }
+        public object? CorrectAnswer { get; set; }
         public string? CorrectAnswerText { get; set; }
         public int Points { get; set; }
         public int? MinWords { get; set; }

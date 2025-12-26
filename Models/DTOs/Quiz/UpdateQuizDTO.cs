@@ -2,7 +2,7 @@
 {
     public class UpdateQuizDTO
     {
-        public int QuizID { get; set; }
+        //public int QuizID { get; set; }
         public int LessonID { get; set; }
         public string? QuestionFileUrl { get; set; }
         public string? MediaUrl { get; set; }

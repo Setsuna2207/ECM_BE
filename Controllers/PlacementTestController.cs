@@ -90,106 +90,221 @@ namespace ECM_BE.Controllers
         }
         [HttpPost("upload")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadTestFile(IFormFile file)
+        public async Task<IActionResult> UploadTestFile(IFormFile file, [FromQuery] string title, [FromQuery] string? description = "", [FromQuery] int? testId = null)
         {
             if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
+                return BadRequest(new { success = false, message = "No file uploaded" });
 
             try
             {
-                // Read file content
                 using (var reader = new StreamReader(file.OpenReadStream()))
                 {
                     var fileContent = await reader.ReadToEndAsync();
+                    List<TestSectionDTO>? sections = null;
 
-                    // Parse JSON or JS file
-                    List<TestQuestionDTO> questions = null;
-
-                    if (file.FileName.EndsWith(".json"))
+                    // Parse file based on extension
+                    if (file.FileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Parse JSON
+                        // Parse JSON directly
                         var jsonData = JsonConvert.DeserializeObject<dynamic>(fileContent);
-                        questions = JsonConvert.DeserializeObject<List<TestQuestionDTO>>(
-                            JsonConvert.SerializeObject(jsonData["questions"])
-                        );
+
+                        // Check if it has sections property
+                        if (jsonData?.sections != null)
+                        {
+                            sections = JsonConvert.DeserializeObject<List<TestSectionDTO>>(
+                                JsonConvert.SerializeObject(jsonData.sections));
+                        }
                     }
-                    else if (file.FileName.EndsWith(".js"))
+                    else if (file.FileName.EndsWith(".js", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Extract object from "export default { ... }"
+                        // Extract the object from "export default { ... }"
                         var match = System.Text.RegularExpressions.Regex.Match(
                             fileContent,
-                            @"export\s+default\s+({[\s\S]*})"
+                            @"export\s+default\s+(\{[\s\S]*\});?\s*$",
+                            System.Text.RegularExpressions.RegexOptions.Multiline
                         );
 
-                        if (match.Success)
+                        if (!match.Success)
                         {
-                            var jsonStr = match.Groups[1].Value;
-                            var jsonData = JsonConvert.DeserializeObject<dynamic>(jsonStr);
-                            questions = JsonConvert.DeserializeObject<List<TestQuestionDTO>>(
-                                JsonConvert.SerializeObject(jsonData["questions"])
-                            );
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Invalid .js file format. Must contain 'export default { ... }'"
+                            });
                         }
-                        else
+
+                        var jsonContent = match.Groups[1].Value;
+
+                        // Remove trailing semicolon and comma if present
+                        jsonContent = jsonContent.TrimEnd(';', ',').Trim();
+
+                        try
                         {
-                            return BadRequest("Invalid .js file format");
+                            // Parse the JavaScript object as JSON
+                            var jsonData = JsonConvert.DeserializeObject<dynamic>(jsonContent);
+
+                            if (jsonData?.sections != null)
+                            {
+                                sections = JsonConvert.DeserializeObject<List<TestSectionDTO>>(
+                                    JsonConvert.SerializeObject(jsonData.sections));
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = $"Error parsing JavaScript object: {ex.Message}. The JS object must be valid JSON format."
+                            });
                         }
                     }
                     else
                     {
-                        return BadRequest("File must be .js or .json format");
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "File must be .js or .json format"
+                        });
                     }
 
-                    if (questions == null || questions.Count == 0)
-                        return BadRequest("No questions found in file");
-
-                    // Save file to disk (optional - for reference)
-                    var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
-                    using (var stream = new FileStream(uploadPath, FileMode.Create))
+                    // Validate sections
+                    if (sections == null || sections.Count == 0)
                     {
-                        await file.CopyToAsync(stream);
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "No sections found in file. Expected format: { sections: [...] }"
+                        });
+                    }
+
+                    // Validate that sections have questions
+                    var totalQuestions = sections.Sum(s => s.Questions?.Count ?? 0);
+                    if (totalQuestions == 0)
+                    {
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "No questions found in sections"
+                        });
+                    }
+
+                    // Calculate total duration (default 15 minutes per section if not specified)
+                    int totalDuration = sections.Sum(s => s.Duration > 0 ? s.Duration : 15);
+
+                    PlacementTestDTO result;
+
+                    if (testId.HasValue && testId.Value > 0)
+                    {
+                        // Update existing test
+                        var updateDto = new UpdatePlacementTestDTO
+                        {
+                            Title = title,
+                            Description = description ?? "",
+                            Duration = totalDuration,
+                            TotalQuestions = totalQuestions,
+                            QuestionFileURL = file.FileName,
+                            MediaURL = "",
+                            Sections = sections
+                        };
+                        result = await _placementTestService.UpdatePlacementTestAsync(testId.Value, updateDto);
+                    }
+                    else
+                    {
+                        // Create new test
+                        var createDto = new CreatePlacementTestRequestDTO
+                        {
+                            Title = title,
+                            Description = description ?? "",
+                            Duration = totalDuration,
+                            TotalQuestions = totalQuestions,
+                            QuestionFileURL = file.FileName,
+                            MediaURL = "",
+                            Sections = sections
+                        };
+                        result = await _placementTestService.CreatePlacementTestAsync(createDto);
                     }
 
                     return Ok(new
                     {
-                        fileUrl = $"/uploads/{fileName}",
-                        questions = questions
+                        success = true,
+                        message = $"Test uploaded successfully ({sections.Count} sections, {totalQuestions} questions)",
+                        data = new
+                        {
+                            testId = result.TestID,
+                            title = result.Title,
+                            description = result.Description,
+                            duration = totalDuration,
+                            totalQuestions = totalQuestions,
+                            sectionsCount = sections.Count,
+                            sections = result.Sections
+                        }
                     });
                 }
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error processing file: {ex.Message}");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = $"Error processing file: {ex.Message}",
+                    stackTrace = ex.StackTrace
+                });
             }
         }
-        [HttpPost("upload-media")]
+
+        [HttpPost("{testId}/upload-media")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadMediaFile(IFormFile file)
+        public async Task<IActionResult> UploadTestMediaFile(int testId, IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
             try
             {
-                var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
-                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+                // Create uploads directory
+                var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "test-media");
+                Directory.CreateDirectory(uploadFolder);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
-                using (var stream = new FileStream(uploadPath, FileMode.Create))
+                // Generate unique filename
+                var extension = Path.GetExtension(file.FileName);
+                var fileName = $"{DateTime.Now.Ticks}-test-{testId}{extension}";
+                var filePath = Path.Combine(uploadFolder, fileName);
+
+                // Save file
+                using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
+                var mediaUrl = $"/uploads/test-media/{fileName}";
+
+                // Update test with media URL
+                var existingTest = await _placementTestService.GetPlacementTestByIdAsync(testId);
+                if (existingTest == null)
+                    return NotFound("Test not found");
+
+                var updateDto = new UpdatePlacementTestDTO
+                {
+                    Title = existingTest.Title,
+                    Description = existingTest.Description,
+                    Duration = existingTest.Duration,
+                    TotalQuestions = existingTest.TotalQuestions,
+                    QuestionFileURL = existingTest.QuestionFileURL,
+                    MediaURL = mediaUrl,
+                    Sections = existingTest.Sections
+                };
+
+                await _placementTestService.UpdatePlacementTestAsync(testId, updateDto);
+
                 return Ok(new
                 {
-                    mediaUrl = $"/uploads/{fileName}"
+                    mediaUrl = mediaUrl,
+                    fileName = file.FileName
                 });
             }
             catch (Exception ex)
             {
-                return BadRequest($"Error uploading media: {ex.Message}");
+                return BadRequest($"Error processing media: {ex.Message}");
             }
         }
 
