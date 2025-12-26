@@ -187,35 +187,45 @@ namespace ECM_BE.Controllers
 
             try
             {
-                using (var memoryStream = new MemoryStream())
+                var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
+
+                using (var stream = new FileStream(uploadPath, FileMode.Create))
                 {
-                    await file.CopyToAsync(memoryStream);
-                    var fileBytes = memoryStream.ToArray();
-
-                    // Return base64 encoded file
-                    var base64String = Convert.ToBase64String(fileBytes);
-                    var mimeType = file.ContentType;
-
-                    // Optionally save the media URL to the quiz in DB
-                    var mediaUrl = $"data:{mimeType};base64,{base64String}";
-
-                    // If you want to save it to the quiz:
-                    // var updateDto = new UpdateQuizDTO { MediaUrl = mediaUrl };
-                    // await _quizService.UpdateQuizAsync(quizId, updateDto);
-
-                    return Ok(new
-                    {
-                        mediaUrl = mediaUrl,
-                        fileName = file.FileName
-                    });
+                    await file.CopyToAsync(stream);
                 }
+
+                var mediaUrl = $"/uploads/{fileName}";
+
+                // Get existing quiz
+                var existingQuiz = await _quizService.GetQuizByIdAsync(quizId);
+                if (existingQuiz == null)
+                    return NotFound("Quiz not found");
+
+                // Create update DTO with only the fields we need
+                var updateDto = new UpdateQuizDTO
+                {
+                    LessonID = existingQuiz.LessonID,
+                    QuestionFileUrl = existingQuiz.QuestionFileUrl ?? "",
+                    MediaUrl = mediaUrl,
+                    Description = existingQuiz.Description ?? "",
+                    Questions = null  // Don't touch questions
+                };
+
+                await _quizService.UpdateQuizAsync(quizId, updateDto);
+
+                return Ok(new
+                {
+                    mediaUrl = mediaUrl,
+                    fileName = file.FileName
+                });
             }
             catch (Exception ex)
             {
                 return BadRequest($"Error processing media: {ex.Message}");
             }
         }
-
 
     }
 }

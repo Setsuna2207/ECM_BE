@@ -46,6 +46,7 @@
 	<ItemGroup>
 		<Folder Include="bin\Debug\net8.0\" />
 		<Folder Include="Migrations\" />
+		<Folder Include="uploads\" />
 		<Folder Include="wwwroot\" />
 		<Folder Include="obj\Debug\net8.0\refint\" />
 		<Folder Include="obj\Debug\net8.0\ref\" />
