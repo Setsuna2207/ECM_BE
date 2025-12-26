@@ -91,44 +91,35 @@ namespace ECM_BE.Controllers
 
         [HttpPost("upload")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadQuizFile(IFormFile file)
+        public async Task<IActionResult> UploadQuizFile(IFormFile file, [FromQuery] int lessonId, [FromQuery] string description = "")
         {
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
             try
             {
-                // Read file content
                 using (var reader = new StreamReader(file.OpenReadStream()))
                 {
                     var fileContent = await reader.ReadToEndAsync();
-
-                    // Parse JSON or JS file
                     List<QuizQuestionDTO> questions = null;
 
+                    // Parse file
                     if (file.FileName.EndsWith(".json"))
                     {
-                        // Parse JSON
                         var jsonData = JsonConvert.DeserializeObject<dynamic>(fileContent);
                         questions = JsonConvert.DeserializeObject<List<QuizQuestionDTO>>(
-                            JsonConvert.SerializeObject(jsonData["questions"])
-                        );
+                            JsonConvert.SerializeObject(jsonData["questions"]));
                     }
                     else if (file.FileName.EndsWith(".js"))
                     {
-                        // Extract object from "export default { ... }"
-                        var match = System.Text.RegularExpressions.Regex.Match(
-                            fileContent,
-                            @"export\s+default\s+({[\s\S]*})"
-                        );
-
+                        var match = System.Text.RegularExpressions.Regex.Match(fileContent,
+                            @"export\s+default\s+({[\s\S]*})");
                         if (match.Success)
                         {
                             var jsonStr = match.Groups[1].Value;
                             var jsonData = JsonConvert.DeserializeObject<dynamic>(jsonStr);
                             questions = JsonConvert.DeserializeObject<List<QuizQuestionDTO>>(
-                                JsonConvert.SerializeObject(jsonData["questions"])
-                            );
+                                JsonConvert.SerializeObject(jsonData["questions"]));
                         }
                         else
                         {
@@ -143,26 +134,59 @@ namespace ECM_BE.Controllers
                     if (questions == null || questions.Count == 0)
                         return BadRequest("No questions found in file");
 
-                    // Save file to disk (optional - for reference)
-                    var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
-                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
-
-                    Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
-                    using (var stream = new FileStream(uploadPath, FileMode.Create))
+                    // Create quiz with all data in one go
+                    var createDto = new CreateQuizRequestDTO
                     {
-                        await file.CopyToAsync(stream);
-                    }
+                        LessonID = lessonId,
+                        QuestionFileUrl = "", // No file stored
+                        MediaUrl = "", // Can be added later
+                        Description = description,
+                        Questions = questions // Save questions to DB
+                    };
+
+                    var result = await _quizService.CreateQuizAsync(createDto);
 
                     return Ok(new
                     {
-                        fileUrl = $"/uploads/{fileName}",
-                        questions = questions
+                        quizId = result.QuizID,
+                        lessonId = result.LessonID,
+                        questions = questions,
+                        description = result.Description
                     });
                 }
             }
             catch (Exception ex)
             {
                 return BadRequest($"Error processing file: {ex.Message}");
+            }
+        }
+
+        [HttpPost("upload-media")]
+        [Authorize(Policy = "AdminPolicy")]
+        public async Task<IActionResult> UploadMediaFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            try
+            {
+                var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
+                using (var stream = new FileStream(uploadPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                return Ok(new
+                {
+                    mediaUrl = $"/uploads/{fileName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error uploading media: {ex.Message}");
             }
         }
 

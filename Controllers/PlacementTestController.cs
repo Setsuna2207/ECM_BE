@@ -164,5 +164,34 @@ namespace ECM_BE.Controllers
                 return BadRequest($"Error processing file: {ex.Message}");
             }
         }
+        [HttpPost("upload-media")]
+        [Authorize(Policy = "AdminPolicy")]
+        public async Task<IActionResult> UploadMediaFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            try
+            {
+                var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
+                var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
+                using (var stream = new FileStream(uploadPath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                return Ok(new
+                {
+                    mediaUrl = $"/uploads/{fileName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error uploading media: {ex.Message}");
+            }
+        }
+
     }
 }
