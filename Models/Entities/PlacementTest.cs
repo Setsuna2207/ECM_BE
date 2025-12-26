@@ -26,6 +26,10 @@ public partial class PlacementTest
     [Column("QuestionFileURL")]
     public string QuestionFileURL { get; set; } = null!;
 
+    // Store actual sections as JSON
+    [Column("Sections", TypeName = "nvarchar(max)")]
+    public string? Sections { get; set; }
+
     [Column("MediaURL")]
     public string MediaURL { get; set; } = null!;
 

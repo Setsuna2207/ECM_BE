@@ -8,5 +8,6 @@
         public int TotalQuestions { get; set; }
         public string QuestionFileURL { get; set; } = null!;
         public string MediaURL { get; set; } = null!;
+        public List<TestSectionDTO>? Sections { get; set; }
     }
 }

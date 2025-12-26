@@ -2,6 +2,7 @@
 using ECM_BE.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace ECM_BE.Controllers
 {
@@ -87,5 +88,83 @@ namespace ECM_BE.Controllers
                 return NotFound(ex.Message);
             }
         }
+
+        [HttpPost("upload")]
+        [Authorize(Policy = "AdminPolicy")]
+        public async Task<IActionResult> UploadQuizFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            try
+            {
+                // Read file content
+                using (var reader = new StreamReader(file.OpenReadStream()))
+                {
+                    var fileContent = await reader.ReadToEndAsync();
+
+                    // Parse JSON or JS file
+                    List<QuizQuestionDTO> questions = null;
+
+                    if (file.FileName.EndsWith(".json"))
+                    {
+                        // Parse JSON
+                        var jsonData = JsonConvert.DeserializeObject<dynamic>(fileContent);
+                        questions = JsonConvert.DeserializeObject<List<QuizQuestionDTO>>(
+                            JsonConvert.SerializeObject(jsonData["questions"])
+                        );
+                    }
+                    else if (file.FileName.EndsWith(".js"))
+                    {
+                        // Extract object from "export default { ... }"
+                        var match = System.Text.RegularExpressions.Regex.Match(
+                            fileContent,
+                            @"export\s+default\s+({[\s\S]*})"
+                        );
+
+                        if (match.Success)
+                        {
+                            var jsonStr = match.Groups[1].Value;
+                            var jsonData = JsonConvert.DeserializeObject<dynamic>(jsonStr);
+                            questions = JsonConvert.DeserializeObject<List<QuizQuestionDTO>>(
+                                JsonConvert.SerializeObject(jsonData["questions"])
+                            );
+                        }
+                        else
+                        {
+                            return BadRequest("Invalid .js file format");
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("File must be .js or .json format");
+                    }
+
+                    if (questions == null || questions.Count == 0)
+                        return BadRequest("No questions found in file");
+
+                    // Save file to disk (optional - for reference)
+                    var fileName = $"{DateTime.Now.Ticks}-{file.FileName}";
+                    var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+
+                    Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
+                    using (var stream = new FileStream(uploadPath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    return Ok(new
+                    {
+                        fileUrl = $"/uploads/{fileName}",
+                        questions = questions
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error processing file: {ex.Message}");
+            }
+        }
+
     }
 }

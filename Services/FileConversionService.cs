@@ -1,12 +1,14 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using ECM_BE.Models.DTOs.FileConversion;
+using ECM_BE.Models.DTOs.PlacementTest;
+using ECM_BE.Models.DTOs.Quiz;
 using ECM_BE.Services.Interfaces;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
 using Newtonsoft.Json;
 using System.Text;
 using System.Text.RegularExpressions;
-using iTextSharp.text.pdf;
-using iTextSharp.text.pdf.parser;
 
 namespace ECM_BE.Services
 {
@@ -147,16 +149,16 @@ namespace ECM_BE.Services
             try
             {
                 var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var questions = new List<ConvertedQuestionDTO>();
+                var questions = new List<QuizQuestionDTO>(); // Use QuizQuestionDTO
 
                 int questionId = 1;
-                ConvertedQuestionDTO? currentQuestion = null;
+                QuizQuestionDTO? currentQuestion = null;
 
                 foreach (var line in lines)
                 {
                     var trimmedLine = line.Trim();
 
-                    // Detect question start (e.g., "Question 1:", "1.", "Q1:")
+                    // Detect question start
                     if (Regex.IsMatch(trimmedLine, @"^(Question\s*\d+|Q\d+|\d+\.)", RegexOptions.IgnoreCase))
                     {
                         if (currentQuestion != null)
@@ -164,25 +166,22 @@ namespace ECM_BE.Services
                             questions.Add(currentQuestion);
                         }
 
-                        currentQuestion = new ConvertedQuestionDTO
+                        currentQuestion = new QuizQuestionDTO
                         {
                             QuestionId = questionId++,
-                            Type = "multiple-choice",
-                            Options = new List<string>(),
-                            Points = 1
+                            Options = new List<string>()
                         };
 
-                        // Extract question text
                         var questionText = Regex.Replace(trimmedLine, @"^(Question\s*\d+|Q\d+|\d+\.)\s*", "", RegexOptions.IgnoreCase);
                         currentQuestion.Question = questionText;
                     }
-                    // Detect options (e.g., "A)", "a.", "(A)", "A.")
+                    // Detect options
                     else if (currentQuestion != null && Regex.IsMatch(trimmedLine, @"^[A-Da-d][\).\]]"))
                     {
                         var optionText = Regex.Replace(trimmedLine, @"^[A-Da-d][\).\]]\s*", "");
                         currentQuestion.Options?.Add(optionText);
                     }
-                    // Detect correct answer (e.g., "Answer: B", "Correct: B")
+                    // Detect correct answer
                     else if (currentQuestion != null && Regex.IsMatch(trimmedLine, @"^(Answer|Correct):", RegexOptions.IgnoreCase))
                     {
                         var answerMatch = Regex.Match(trimmedLine, @"[A-Da-d]", RegexOptions.IgnoreCase);
@@ -192,7 +191,6 @@ namespace ECM_BE.Services
                             currentQuestion.CorrectAnswer = answerLetter[0] - 'A';
                         }
                     }
-                    // Append to current question if not empty
                     else if (currentQuestion != null && !string.IsNullOrWhiteSpace(trimmedLine))
                     {
                         if (currentQuestion.Options?.Count == 0)
@@ -202,36 +200,23 @@ namespace ECM_BE.Services
                     }
                 }
 
-                // Add last question
                 if (currentQuestion != null)
                 {
                     questions.Add(currentQuestion);
                 }
 
-                var section = new ConvertedSectionDTO
+                // Return simple quiz format (not wrapped in sections)
+                var quizData = new
                 {
-                    SectionId = 1,
-                    Title = "Quiz Questions",
-                    Description = "Converted quiz questions",
-                    Questions = questions
+                    questions = questions
                 };
 
-                var testData = new ConvertedTestDTO
-                {
-                    Title = "Converted Quiz",
-                    Description = "Quiz converted from file",
-                    Duration = 30,
-                    TotalQuestions = questions.Count,
-                    Sections = new List<ConvertedSectionDTO> { section }
-                };
-
-                var jsonString = JsonConvert.SerializeObject(testData, Formatting.Indented);
+                var jsonString = JsonConvert.SerializeObject(quizData, Formatting.Indented);
 
                 return new ConversionResultDTO
                 {
                     Success = true,
-                    Message = "Quiz converted successfully",
-                    Data = testData,
+                    Message = $"Quiz converted successfully ({questions.Count} questions)",
                     JsonString = jsonString
                 };
             }
@@ -250,10 +235,10 @@ namespace ECM_BE.Services
             try
             {
                 var lines = content.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                var sections = new List<ConvertedSectionDTO>();
+                var sections = new List<TestSectionDTO>(); // Use TestSectionDTO
 
-                ConvertedSectionDTO? currentSection = null;
-                ConvertedQuestionDTO? currentQuestion = null;
+                TestSectionDTO? currentSection = null;
+                TestQuestionDTO? currentQuestion = null; // Use TestQuestionDTO
                 int questionId = 1;
                 int sectionId = 1;
 
@@ -261,9 +246,9 @@ namespace ECM_BE.Services
                 {
                     var trimmedLine = line.Trim();
 
-                    // Detect section headers (e.g., "Section 1:", "LISTENING COMPREHENSION")
+                    // Detect section headers
                     if (Regex.IsMatch(trimmedLine, @"^(Section\s*\d+|Part\s*\d+):", RegexOptions.IgnoreCase) ||
-                        trimmedLine.Length > 10 && trimmedLine == trimmedLine.ToUpper() && !trimmedLine.Contains("?"))
+                        (trimmedLine.Length > 10 && trimmedLine == trimmedLine.ToUpper() && !trimmedLine.Contains("?")))
                     {
                         if (currentSection != null)
                         {
@@ -275,12 +260,13 @@ namespace ECM_BE.Services
                             sections.Add(currentSection);
                         }
 
-                        currentSection = new ConvertedSectionDTO
+                        currentSection = new TestSectionDTO
                         {
                             SectionId = sectionId++,
                             Title = trimmedLine,
                             Description = "",
-                            Questions = new List<ConvertedQuestionDTO>()
+                            Duration = 15,
+                            Questions = new List<TestQuestionDTO>()
                         };
                     }
                     // Detect questions
@@ -291,7 +277,7 @@ namespace ECM_BE.Services
                             currentSection.Questions.Add(currentQuestion);
                         }
 
-                        currentQuestion = new ConvertedQuestionDTO
+                        currentQuestion = new TestQuestionDTO
                         {
                             QuestionId = questionId++,
                             Type = "multiple-choice",
@@ -330,14 +316,10 @@ namespace ECM_BE.Services
                     sections.Add(currentSection);
                 }
 
-                var testData = new ConvertedTestDTO
+                // Return test format with sections
+                var testData = new
                 {
-                    Title = "Converted Test",
-                    Description = "Test converted from file",
-                    Duration = 90,
-                    TotalQuestions = sections.Sum(s => s.Questions.Count),
-                    PassingScore = 60,
-                    Sections = sections
+                    sections = sections
                 };
 
                 var jsonString = JsonConvert.SerializeObject(testData, Formatting.Indented);
@@ -345,8 +327,7 @@ namespace ECM_BE.Services
                 return new ConversionResultDTO
                 {
                     Success = true,
-                    Message = "Test converted successfully",
-                    Data = testData,
+                    Message = $"Test converted successfully ({sections.Count} sections, {sections.Sum(s => s.Questions.Count)} questions)",
                     JsonString = jsonString
                 };
             }

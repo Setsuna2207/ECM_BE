@@ -21,6 +21,10 @@ public partial class Quiz
     [Column("Description")]
     public string? Description { get; set; }
 
+    // Store actual questions as JSON
+    [Column("Questions", TypeName = "nvarchar(max)")]
+    public string? Questions { get; set; }
+
     [ForeignKey("LessonID")]
     [InverseProperty("Quizzes")]
     public virtual Lesson Lesson { get; set; } = null!;

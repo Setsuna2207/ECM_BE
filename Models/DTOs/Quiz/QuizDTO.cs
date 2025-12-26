@@ -7,5 +7,6 @@
         public string? QuestionFileUrl { get; set; }
         public string? MediaUrl { get; set; }
         public string? Description { get; set; }
+        public List<QuizQuestionDTO>? Questions { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using ECM_BE.Models.Entities;
 using ECM_BE.Models.Mapper;
 using ECM_BE.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace ECM_BE.Services
 {
@@ -69,6 +70,9 @@ namespace ECM_BE.Services
             pt.Duration = requestDto.Duration;
             pt.QuestionFileURL = requestDto.QuestionFileURL;
             pt.MediaURL = requestDto.MediaURL;
+            pt.Sections = requestDto.Sections != null
+                ? JsonConvert.SerializeObject(requestDto.Sections)
+                : pt.Sections;
 
             await _context.SaveChangesAsync();
 

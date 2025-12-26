@@ -3,16 +3,19 @@ using ECM_BE.Models.DTOs.Quiz;
 using ECM_BE.Models.Mapper;
 using ECM_BE.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace ECM_BE.Services
 {
     public class QuizService : IQuizService
     {
         private readonly AppDbContext _context;
+
         public QuizService(AppDbContext context)
         {
             _context = context;
         }
+
         public async Task<List<AllQuizDTO>> GetAllQuizzesAsync()
         {
             return await _context.Quizzes
@@ -23,19 +26,26 @@ namespace ECM_BE.Services
                     LessonID = q.LessonID,
                     QuestionFileUrl = q.QuestionFileUrl,
                     MediaUrl = q.MediaUrl,
-                    Description = q.Description
+                    Description = q.Description,
+                    Questions = !string.IsNullOrEmpty(q.Questions)
+                        ? JsonConvert.DeserializeObject<List<QuizQuestionDTO>>(q.Questions)
+                        : null
                 })
                 .ToListAsync();
         }
+
         public async Task<QuizDTO> GetQuizByIdAsync(int quizId)
         {
             var quiz = await _context.Quizzes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.QuizID == quizId);
+
             if (quiz == null)
                 throw new Exception("Không tìm thấy bài quiz");
+
             return quiz.ToQuizDto();
         }
+
         public async Task<QuizDTO> CreateQuizAsync(CreateQuizRequestDTO requestDto)
         {
             var quiz = requestDto.ToQuizFromCreate();
@@ -43,6 +53,7 @@ namespace ECM_BE.Services
             await _context.SaveChangesAsync();
             return quiz.ToQuizDto();
         }
+
         public async Task<QuizDTO> UpdateQuizAsync(int quizId, UpdateQuizDTO requestDto)
         {
             var quiz = await _context.Quizzes.FirstOrDefaultAsync(x => x.QuizID == quizId);
@@ -53,10 +64,14 @@ namespace ECM_BE.Services
             quiz.QuestionFileUrl = requestDto.QuestionFileUrl;
             quiz.MediaUrl = requestDto.MediaUrl;
             quiz.Description = requestDto.Description;
+            quiz.Questions = requestDto.Questions != null
+                ? JsonConvert.SerializeObject(requestDto.Questions)
+                : quiz.Questions;
 
             await _context.SaveChangesAsync();
             return quiz.ToQuizDto();
         }
+
         public async Task DeleteQuizAsync(int quizId)
         {
             var quiz = await _context.Quizzes.FirstOrDefaultAsync(x => x.QuizID == quizId);
