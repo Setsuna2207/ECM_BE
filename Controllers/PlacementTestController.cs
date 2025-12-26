@@ -20,8 +20,29 @@ namespace ECM_BE.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllPlacementTests()
         {
-            var tests = await _placementTestService.GetAllPlacementTestsAsync();
-            return Ok(tests);
+            try
+            {
+                var tests = await _placementTestService.GetAllPlacementTestsAsync();
+
+                // Map to include all necessary fields
+                var result = tests.Select(t => new
+                {
+                    t.TestID,
+                    t.Title,
+                    t.Description,
+                    t.Duration,
+                    t.TotalQuestions,
+                    t.QuestionFileURL,
+                    t.MediaURL,
+                    t.Sections
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error fetching tests: {ex.Message}");
+            }
         }
 
         [HttpGet("{testId}")]
@@ -30,7 +51,20 @@ namespace ECM_BE.Controllers
             try
             {
                 var test = await _placementTestService.GetPlacementTestByIdAsync(testId);
-                return Ok(test);
+                if (test == null)
+                    return NotFound("Test not found");
+
+                return Ok(new
+                {
+                    test.TestID,
+                    test.Title,
+                    test.Description,
+                    test.Duration,
+                    test.TotalQuestions,
+                    test.QuestionFileURL,
+                    test.MediaURL,
+                    test.Sections
+                });
             }
             catch (Exception ex)
             {
