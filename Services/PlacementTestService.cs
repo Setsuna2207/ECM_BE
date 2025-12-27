@@ -29,7 +29,9 @@ namespace ECM_BE.Services
                     TotalQuestions = pt.TotalQuestions,
                     Duration = pt.Duration,
                     QuestionFileURL = pt.QuestionFileURL,
-                    MediaURL = pt.MediaURL
+                    MediaURL = pt.MediaURL,
+                    Category = pt.Category,
+                    Level = pt.Level
                 })
                 .ToListAsync();
         }
@@ -70,6 +72,8 @@ namespace ECM_BE.Services
             pt.Duration = requestDto.Duration;
             pt.QuestionFileURL = requestDto.QuestionFileURL;
             pt.MediaURL = requestDto.MediaURL;
+            pt.Category = requestDto.Category ?? pt.Category;
+            pt.Level = requestDto.Level ?? pt.Level;
             pt.Sections = requestDto.Sections != null
                 ? JsonConvert.SerializeObject(requestDto.Sections)
                 : pt.Sections;

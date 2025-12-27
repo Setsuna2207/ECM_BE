@@ -33,6 +33,14 @@ public partial class PlacementTest
     [Column("MediaURL")]
     public string MediaURL { get; set; } = null!;
 
+    [Column("Category")]
+    [MaxLength(50)]
+    public string? Category { get; set; }
+
+    [Column("Level")]
+    [MaxLength(50)]
+    public string? Level { get; set; }
+
     [InverseProperty("PlacementTest")]
     public virtual ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
 }

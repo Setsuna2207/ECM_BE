@@ -16,6 +16,8 @@ namespace ECM_BE.Models.Mapper
                 TotalQuestions = requestDto.TotalQuestions,
                 QuestionFileURL = requestDto.QuestionFileURL,
                 MediaURL = requestDto.MediaURL,
+                Category = requestDto.Category,
+                Level = requestDto.Level,
                 Sections = requestDto.Sections != null
                     ? JsonConvert.SerializeObject(requestDto.Sections)
                     : null
@@ -33,6 +35,8 @@ namespace ECM_BE.Models.Mapper
                 TotalQuestions = test.TotalQuestions,
                 QuestionFileURL = test.QuestionFileURL,
                 MediaURL = test.MediaURL,
+                Category = test.Category,
+                Level = test.Level,
                 Sections = !string.IsNullOrEmpty(test.Sections)
                     ? JsonConvert.DeserializeObject<List<TestSectionDTO>>(test.Sections)
                     : null

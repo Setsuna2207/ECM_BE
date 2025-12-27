@@ -34,6 +34,8 @@ namespace ECM_BE.Controllers
                     t.TotalQuestions,
                     t.QuestionFileURL,
                     t.MediaURL,
+                    t.Category,
+                    t.Level,
                     t.Sections
                 }).ToList();
 
@@ -63,6 +65,8 @@ namespace ECM_BE.Controllers
                     test.TotalQuestions,
                     test.QuestionFileURL,
                     test.MediaURL,
+                    test.Category,
+                    test.Level,
                     test.Sections
                 });
             }
@@ -124,7 +128,13 @@ namespace ECM_BE.Controllers
         }
         [HttpPost("upload")]
         [Authorize(Policy = "AdminPolicy")]
-        public async Task<IActionResult> UploadTestFile(IFormFile file, [FromQuery] string title, [FromQuery] string? description = "", [FromQuery] int? testId = null)
+        public async Task<IActionResult> UploadTestFile(
+            IFormFile file, 
+            [FromQuery] string title, 
+            [FromQuery] string? description = "", 
+            [FromQuery] string? category = "GENERAL",
+            [FromQuery] string? level = "All Levels",
+            [FromQuery] int? testId = null)
         {
             if (file == null || file.Length == 0)
                 return BadRequest(new { success = false, message = "No file uploaded" });
@@ -238,6 +248,8 @@ namespace ECM_BE.Controllers
                             TotalQuestions = totalQuestions,
                             QuestionFileURL = file.FileName,
                             MediaURL = "",
+                            Category = category,
+                            Level = level,
                             Sections = sections
                         };
                         result = await _placementTestService.UpdatePlacementTestAsync(testId.Value, updateDto);
@@ -253,6 +265,8 @@ namespace ECM_BE.Controllers
                             TotalQuestions = totalQuestions,
                             QuestionFileURL = file.FileName,
                             MediaURL = "",
+                            Category = category,
+                            Level = level,
                             Sections = sections
                         };
                         result = await _placementTestService.CreatePlacementTestAsync(createDto);
@@ -325,6 +339,8 @@ namespace ECM_BE.Controllers
                     TotalQuestions = existingTest.TotalQuestions,
                     QuestionFileURL = existingTest.QuestionFileURL,
                     MediaURL = mediaUrl,
+                    Category = existingTest.Category,
+                    Level = existingTest.Level,
                     Sections = existingTest.Sections
                 };
 
