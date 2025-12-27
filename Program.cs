@@ -184,12 +184,18 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
+// Serve static files from uploads folder (for general uploads)
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(
         Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
     RequestPath = "/uploads"
 });
+
+// Serve static files from wwwroot folder (for test media and other static content)
+app.UseStaticFiles();
+
 app.UseCors("AllowSpecificOrigin");
 
 // Auth pipeline
