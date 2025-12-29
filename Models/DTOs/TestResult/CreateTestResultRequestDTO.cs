@@ -3,7 +3,7 @@
     public class CreateTestResultRequestDTO
     {
         public int TestID { get; set; }
-        public string UserID { get; set; } = null!;
+        public string? UserID { get; set; } // Made nullable since controller sets it
         public string UserAnswers { get; set; } = null!; // Store JSON: {"1": 0, "2": 1, "3": 2, ...}
         public int CorrectAnswers { get; set; }
         public int IncorrectAnswers { get; set; }
