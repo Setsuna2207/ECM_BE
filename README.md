@@ -1,17 +1,17 @@
-# ECM_BE
+# ECM_BE - English Course Management Backend
 
-## 📌 Overview
-This is a backend API built with **.NET 8**, using **Entity Framework Core** with **SQL Server** as the database.
+Backend API built with **.NET 8** and **Entity Framework Core**.
 
-Frontend repository: [https://github.com/Setsuna2207/ECM_FE]
+Frontend: [https://github.com/Setsuna2207/ECM_FE]
 
 ---
 
 ## 🚀 Tech Stack
-- [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)
-- [Entity Framework Core](https://docs.microsoft.com/ef/core/)
-- [ASP.NET Core Identity](https://docs.microsoft.com/aspnet/core/security/authentication/identity)
-- [JWT Authentication](https://jwt.io/)
+- .NET 8
+- Entity Framework Core
+- ASP.NET Core Identity
+- JWT Authentication
+- SQL Server
 
 ---
 
@@ -21,118 +21,145 @@ Frontend repository: [https://github.com/Setsuna2207/ECM_FE]
 .
 ├── Controllers/               # API Controllers
 ├── Services/                  # Business Logic Services
-├── Models/                    # Data Models & DTOs & Mappers
+│   └── Interfaces/            # Service Interfaces
+├── Models/                    # Data Models, DTOs & Mappers
+│   ├── Entities/              # Database Entities
+│   ├── DTOs/                  # Data Transfer Objects
+│   └── Mapper/                # Entity-DTO Mappers
 ├── Data/                      # DbContext & Database Configuration
-├── Configurations/            # Application Configuration
+├── Configuration/             # Application Configuration
 ├── Exceptions/                # Custom Exception Handling
 ├── Extensions/                # Extension Methods
-├── Hubs/                      # SignalR Hubs
-├── Migrations/                # Migrations for SQL Server
-├── Migrations.PostgreSQL/     # Migrations for PostgresSQL
+├── Migrations/                # EF Core Migrations
+├── uploads/                   # File Upload Storage (Local)
+├── wwwroot/                   # Static Files (Local)
+├── appsettings.json           # Application Settings
 └── Program.cs                 # Application Entry Point
-uploads/                       # Local storage (keep to test, else: remove all items in this folder when clone)
 ```
+
 ---
 
 ## ⚙️ Configuration
 
-### 1. Core Configuration — General settings such as logging, email, and JWT.
-Create an `appsettings.json` file in the project root and configure as follows:
+Create `appsettings.json`:
 
-```
+```json
 {
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft.AspNetCore": "Warning"
-    }
-  },
   "EmailConfiguration": {
-    "From": "your-email",
+    "From": "your-email@gmail.com",
     "SmtpServer": "smtp.gmail.com",
     "Port": 587,
-    "Username": "your-email",
-    "Password": "your_password"
+    "Username": "your-email@gmail.com",
+    "Password": "your-app-password"
   },
-  "BaseUrl": "https://localhost:7169",
-  "AllowedHosts": "*",
-  "ClientUrls": [
-    "http://localhost:5173"
-  ],
+  "BaseUrl": "https://localhost:7264",
+  "ClientUrls": ["http://localhost:5173"],
   "JWT": {
-    "Issuer": "https://localhost:7169",
-    "Audience": "https://localhost:7169",
-    "SigningKey": "Your-512-bit-Key"
+    "Issuer": "https://localhost:7264",
+    "Audience": "https://localhost:7264",
+    "SigningKey": "Your-512-bit-Secret-Key-Here-Must-Be-At-Least-64-Characters-Long"
+  },
+  "DatabaseProvider": "SqlServer",
+  "ConnectionStrings": {
+    "SqlServerConnection": "Server=localhost;Database=ECM;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
   }
 }
 ```
-### 2. Database connection configration
-- Set `"DatabaseProvider"` to "SqlServer"` depending on the database provider you use.
-- set connection string for database connection.
 
-```
-"DatabaseProvider": "SqlServer",
-"ConnectionStrings": {
-  "SqlServerConnection": "Server=your-server;Database=ECM;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True",
-}
-```
+**Note**: Use Gmail [App Password](https://support.google.com/accounts/answer/185833) for SMTP
 
 ---
 
-## 📦 Installation & Setup
+## 📦 Setup
 
-### 1. Prerequisites
-- Visual Studio 2022
+### Prerequisites
+- Visual Studio 2022 or VS Code
 - .NET 8 SDK
 - SQL Server
 
-### 2. Database Setup
-1. Open Package Manager Console in Visual Studio
-2. Run the following command:
-```
-update-database
-
+### Installation
+```bash
+git clone https://github.com/Setsuna2207/ECM_BE.git
+cd ECM_BE
 ```
 
-### 3. Running the Application
-1. Open the solution in Visual Studio 2022
-2. Build the solution
-3. Press F5 to run the application
+### Database
+```bash
+# Package Manager Console
+Update-Database
 
-The API will be available at:
-- HTTPS: [https://localhost:7624](https://localhost:7624)
-- Swagger UI: [https://localhost:7624/swagger](https://localhost:7624/swagger)
+# .NET CLI
+dotnet ef database update
+```
+
+### Run
+```bash
+dotnet restore
+dotnet build
+dotnet run
+```
+
+Available at:
+- **HTTPS**: [https://localhost:7264](https://localhost:7264)
+- **Swagger**: [https://localhost:7264/swagger](https://localhost:7264/swagger)
 
 ---
 
 ## 🔑 Authentication
 
-* The backend uses **JWT** for authentication.
-* On successful login, the server returns a **JWT token**.
-* Include the token in request headers for protected routes:
-```
+Uses **JWT tokens**. Include in request headers:
+```http
 Authorization: Bearer <token>
 ```
 
-## 👥 Authorization Policies
-
-- `AdminPolicy`: Requires "Admin" role
-- `UserPolicy`: Requires "User" or "Admin" role
-
----
-
-## 🌐 Client Integration
-
-The frontend application is available at: [https://github.com/Setsuna2207/ECM_FE]
-
-The frontend is expected to run at:
-[http://localhost:5173](http://localhost:5173) (configured in `appsettings.json`).
+**Policies**:
+- `AdminPolicy`                 - Admin role
+- `UserPolicy`                  - User or Admin role
 
 ---
 
-## 📝 Notes
+## 📡 API Endpoints
 
-- Ensure proper CORS configuration for your production environment
-- Secure your JWT signing key, database connection strings, and secret keys
-- Configure email settings with valid SMTP credentials
-- For production deployment, update the JWT issuer and audience URLs
+- `/api/User`                   - Authentication & user management
+- `/api/Course`                 - Courses
+- `/api/Lesson`                 - Lessons
+- `/api/Quiz`                   - Quizzes
+- `/api/PlacementTest`          - Placement tests
+- `/api/Review`                 - Reviews
+- `/api/TestResult`             - Test results
+- `/api/QuizResult`             - Quiz results
+- `/api/History`                - Learning history
+- `/api/Following`              - Course following
+
+Full docs: [https://localhost:7264/swagger](https://localhost:7264/swagger)
+
+---
+
+## 🗄️ Database
+
+Main entities: Users, Courses, Lessons, Quizzes, PlacementTests, Reviews, TestResults, QuizResults, History, Following
+
+---
+
+## 🔧 Development
+
+```bash
+# Add migration
+Add-Migration MigrationName
+
+# Apply migration
+Update-Database
+```
+
+## 🐛 Troubleshooting
+
+- **Database Connection Failed**:       Check SQL Server and connection string
+- **JWT Token Invalid**:                Verify SigningKey is 512-bit (64+ characters)
+- **CORS Errors**:                      Add frontend URL to `ClientUrls` and restart
+
+---
+
+## 🔗 Links
+- Frontend: [https://github.com/Setsuna2207/ECM_FE]
+- .NET: [https://docs.microsoft.com/dotnet/]
+- EF Core: [https://docs.microsoft.com/ef/core/]
