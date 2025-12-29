@@ -29,6 +29,27 @@ namespace ECM_BE.Controllers
             return Ok(results);
         }
 
+        [HttpGet("user/{userId}")]
+        [Authorize(Policy = "UserPolicy")]
+        public async Task<IActionResult> GetTestResultsByUserId(string userId)
+        {
+            try
+            {
+                var username = User.GetUsername();
+                var user = await _userManager.FindByNameAsync(username);
+                
+                if (user == null || user.Id != userId)
+                    return Unauthorized("Bạn chỉ có thể xem kết quả của chính mình");
+
+                var results = await _testResultService.GetTestResultsByUserIdAsync(userId);
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet("{resultId}")]
         [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> GetTestResultById(int resultId)

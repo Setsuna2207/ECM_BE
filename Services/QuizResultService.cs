@@ -31,6 +31,16 @@ namespace ECM_BE.Services
 
             return results;
         }
+
+        public async Task<List<QuizResultDTO>> GetQuizResultsByUserIdAsync(string userId)
+        {
+            var results = await _context.QuizResults
+                .Where(x => x.userID == userId)
+                .OrderByDescending(x => x.SubmittedAt)
+                .ToListAsync();
+
+            return results.Select(x => x.ToQuizResultDto()).ToList();
+        }
         public async Task<QuizResultDTO> GetQuizResultByIdAsync(int quizResultId)
         {
             var quizResult = await _context.QuizResults

@@ -5,6 +5,7 @@ namespace ECM_BE.Services.Interfaces
     public interface IQuizResult
     {
         Task<List<AllQuizResultDTO>> GetAllQuizResultsAsync();
+        Task<List<QuizResultDTO>> GetQuizResultsByUserIdAsync(string userId);
         Task<QuizResultDTO> GetQuizResultByIdAsync(int ResultId);
         Task<QuizResultDTO> CreateQuizResultAsync(CreateQuizResultRequestDTO requestDto);
         Task<QuizResultDTO> UpdateQuizResultAsync(int ResultId, UpdateQuizResultDTO requestDto);

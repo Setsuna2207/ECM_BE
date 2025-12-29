@@ -38,6 +38,17 @@ namespace ECM_BE.Services
                 .ToListAsync();
         }
 
+        public async Task<List<TestResultDTO>> GetTestResultsByUserIdAsync(string userId)
+        {
+            var results = await _context.TestResults
+                .AsNoTracking()
+                .Where(tr => tr.userID == userId)
+                .OrderByDescending(tr => tr.CreatedAt)
+                .ToListAsync();
+
+            return results.Select(tr => tr.ToTestResultDto()).ToList();
+        }
+
         public async Task<TestResultDTO> GetTestResultByIdAsync(int testResultId)
         {
             var tr = await _context.TestResults

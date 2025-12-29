@@ -5,6 +5,7 @@ namespace ECM_BE.Services.Interfaces
     public interface ITestResultService
     {
         Task<List<AllTestResultDTO>> GetAllTestResultsAsync();
+        Task<List<TestResultDTO>> GetTestResultsByUserIdAsync(string userId);
         Task<TestResultDTO> GetTestResultByIdAsync(int testResultId);
         Task<TestResultDTO> CreateTestResultAsync(CreateTestResultRequestDTO requestDto);
         Task<TestResultDTO> UpdateTestResultAsync(int ResultId, UpdateTestResultDTO requestDto);
