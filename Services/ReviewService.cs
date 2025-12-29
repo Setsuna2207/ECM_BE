@@ -22,10 +22,14 @@ namespace ECM_BE.Services
         {
             return await _context.Reviews
                 .AsNoTracking()
+                .Include(p => p.User)
                 .Select(p => new AllReviewDTO
                 {
                     CourseID = p.CourseID,
                     userID = p.userID,
+                    UserName = p.User.UserName,
+                    FullName = p.User.FullName,
+                    Avatar = p.User.Avatar,
                     ReviewScore = p.ReviewScore,
                     ReviewContent = p.ReviewContent,
                     CreatedAt = p.CreatedAt,
@@ -37,12 +41,15 @@ namespace ECM_BE.Services
         {
             return await _context.Reviews
             .AsNoTracking()
+                .Include(p => p.User)
                 .Where(p => p.CourseID == courseID)
                 .Select(p => new ReviewDTO
                 {
                     CourseID = p.CourseID,
                     userID = p.userID,
                     UserName = p.User.UserName,
+                    FullName = p.User.FullName,
+                    Avatar = p.User.Avatar,
                     ReviewScore = p.ReviewScore,
                     ReviewContent = p.ReviewContent,
                     CreatedAt = p.CreatedAt,
@@ -54,11 +61,14 @@ namespace ECM_BE.Services
         {
             return await _context.Reviews
             .AsNoTracking()
+                .Include(p => p.User)
                 .Where(p => p.userID == userID)
                 .Select(p => new ReviewDTO
                 {
                     userID = p.userID,
                     UserName = p.User.UserName,
+                    FullName = p.User.FullName,
+                    Avatar = p.User.Avatar,
                     CourseID = p.CourseID,
                     ReviewScore = p.ReviewScore,
                     ReviewContent = p.ReviewContent,
@@ -74,6 +84,10 @@ namespace ECM_BE.Services
                 var review = requestDto.ToReviewFromCreate(userID);
                 await _context.Reviews.AddAsync(review);
                 await _context.SaveChangesAsync();
+                
+                // Load the user data
+                await _context.Entry(review).Reference(r => r.User).LoadAsync();
+                
                 return review.ToReviewDto();
             }
             catch (Exception)
@@ -85,6 +99,7 @@ namespace ECM_BE.Services
         public async Task<ReviewDTO> UpdateReviewAsync(int courseID, UpdateReviewDTO requestDto, string userID)
         {
             var review = await _context.Reviews
+                .Include(r => r.User)
                 .FirstOrDefaultAsync(r => r.CourseID == courseID && r.userID == userID);
             if (review == null)
             {

@@ -5,6 +5,8 @@
         public int CourseID { get; set; }
         public string userID { get; set; } = null!;
         public string UserName { get; set; } = null!;
+        public string? FullName { get; set; }
+        public string? Avatar { get; set; }
         public int ReviewScore { get; set; }
         public string? ReviewContent { get; set; }
         public DateTime? CreatedAt { get; set; }

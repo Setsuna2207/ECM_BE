@@ -22,6 +22,9 @@ namespace ECM_BE.Models.Mapper
             {
                 CourseID = requestDto.CourseID,
                 userID = requestDto.userID,
+                UserName = requestDto.User?.UserName,
+                FullName = requestDto.User?.FullName,
+                Avatar = requestDto.User?.Avatar,
                 ReviewScore = requestDto.ReviewScore,
                 ReviewContent = requestDto.ReviewContent,
                 CreatedAt = requestDto.CreatedAt,
