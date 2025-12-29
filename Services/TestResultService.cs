@@ -63,11 +63,35 @@ namespace ECM_BE.Services
 
         public async Task<TestResultDTO> CreateTestResultAsync(CreateTestResultRequestDTO requestDto)
         {
-            var tr = requestDto.ToTestResultFromCreate();
-            _context.TestResults.Add(tr);
-            await _context.SaveChangesAsync();
+            // Check if user already has a result for this test
+            var existingResult = await _context.TestResults
+                .FirstOrDefaultAsync(x => x.TestID == requestDto.TestID && x.userID == requestDto.UserID);
 
-            return tr.ToTestResultDto();
+            if (existingResult != null)
+            {
+                // Update existing result instead of creating new one
+                existingResult.UserAnswers = requestDto.UserAnswers;
+                existingResult.CorrectAnswers = requestDto.CorrectAnswers;
+                existingResult.IncorrectAnswers = requestDto.IncorrectAnswers;
+                existingResult.SkippedAnswers = requestDto.SkippedAnswers;
+                existingResult.OverallScore = requestDto.OverallScore;
+                existingResult.SectionScores = requestDto.SectionScores;
+                existingResult.LevelDetected = requestDto.LevelDetected;
+                existingResult.TimeSpent = requestDto.TimeSpent;
+                existingResult.CreatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return existingResult.ToTestResultDto();
+            }
+            else
+            {
+                // Create new result
+                var tr = requestDto.ToTestResultFromCreate();
+                _context.TestResults.Add(tr);
+                await _context.SaveChangesAsync();
+
+                return tr.ToTestResultDto();
+            }
         }
 
         public async Task<TestResultDTO> UpdateTestResultAsync(int ResultId, UpdateTestResultDTO requestDto)

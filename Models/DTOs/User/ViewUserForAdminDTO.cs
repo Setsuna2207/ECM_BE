@@ -2,6 +2,7 @@
 {
     public class ViewUserForAdminDTO
     {
+        public string UserID { get; set; }  // Added UserID
         public string UserName { get; set; }
         public string FullName { get; set; }
         public string Email { get; set; }

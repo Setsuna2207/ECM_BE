@@ -9,6 +9,7 @@ namespace ECM_BE.Models.Mapper
         {
             return new ViewUserForAdminDTO()
             {
+                UserID = user.Id,  // Added UserID
                 UserName = user.UserName,
                 FullName = user.FullName,
                 Email = user.Email,
@@ -22,7 +23,7 @@ namespace ECM_BE.Models.Mapper
         {
             return new NewUserDTO()
             {
-                userID = user.Id,
+                UserID = user.Id,  // Changed to PascalCase to match DTO
                 UserName = user.UserName,
                 FullName = user.FullName,
                 Email = user.Email,
