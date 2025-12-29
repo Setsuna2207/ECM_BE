@@ -37,7 +37,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "AdminPolicy")]
+        //[Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> GetAllUsers()
         {
             return await _userService.GetAllUsersAsync();

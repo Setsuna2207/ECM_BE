@@ -24,7 +24,9 @@ namespace ECM_BE.Models.Mapper
             {
                 userID = user.Id,
                 UserName = user.UserName,
-                Email = user.Email
+                FullName = user.FullName,
+                Email = user.Email,
+                Avatar = user.Avatar
             };
         }
 
