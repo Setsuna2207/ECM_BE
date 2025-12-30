@@ -29,6 +29,7 @@ public partial class AppDbContext : IdentityDbContext<User>
     public virtual DbSet<PlacementTest> PlacementTests { get; set; }
     public virtual DbSet<TestResult> TestResults { get; set; }
     public virtual DbSet<AIFeedback> AIFeedbacks { get; set; }
+    public virtual DbSet<LearningPath> LearningPaths { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -324,6 +325,69 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.userID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_UserGoals_Users");
+        });
+
+        // LearningPath Configuration
+        modelBuilder.Entity<LearningPath>(entity =>
+        {
+            entity.HasKey(e => e.LearningPathID);
+            entity.Property(e => e.Status)
+                .IsRequired()
+                .HasMaxLength(50)
+                .HasDefaultValue("GoalSet");
+            entity.Property(e => e.RecommendedCourses)
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CompletedCourses)
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("getdate()");
+            entity.Property(e => e.UpdatedAt)
+                .HasColumnType("datetime");
+            entity.Property(e => e.CompletedAt)
+                .HasColumnType("datetime");
+
+            // n-1: LearningPath -> User
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.LearningPaths)
+                .HasForeignKey(e => e.userID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_LearningPaths_Users");
+
+            // n-1: LearningPath -> UserGoal
+            entity.HasOne(e => e.UserGoal)
+                .WithMany(ug => ug.LearningPaths)
+                .HasForeignKey(e => e.UserGoalID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearningPaths_UserGoals");
+
+            // n-1: LearningPath -> InitialTest
+            entity.HasOne(e => e.InitialTest)
+                .WithMany()
+                .HasForeignKey(e => e.InitialTestID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearningPaths_InitialTest");
+
+            // n-1: LearningPath -> FinalTest
+            entity.HasOne(e => e.FinalTest)
+                .WithMany()
+                .HasForeignKey(e => e.FinalTestID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearningPaths_FinalTest");
+
+            // n-1: LearningPath -> InitialResult
+            entity.HasOne(e => e.InitialResult)
+                .WithMany()
+                .HasForeignKey(e => e.InitialResultID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearningPaths_InitialResult");
+
+            // n-1: LearningPath -> FinalResult
+            entity.HasOne(e => e.FinalResult)
+                .WithMany()
+                .HasForeignKey(e => e.FinalResultID)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_LearningPaths_FinalResult");
         });
 
         OnModelCreatingPartial(modelBuilder);

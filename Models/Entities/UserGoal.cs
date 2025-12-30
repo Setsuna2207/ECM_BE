@@ -24,4 +24,7 @@ public partial class UserGoal
     [InverseProperty("UserGoals")]
     public virtual User User { get; set; } = null!;
 
+    [InverseProperty("UserGoal")]
+    public virtual ICollection<LearningPath> LearningPaths { get; set; } = new List<LearningPath>();
+
 }
