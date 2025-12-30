@@ -40,11 +40,18 @@ namespace ECM_BE.Services
 
         public async Task<List<TestResultDTO>> GetTestResultsByUserIdAsync(string userId)
         {
-            var results = await _context.TestResults
+            // Get all results for the user
+            var allResults = await _context.TestResults
                 .AsNoTracking()
-                .Include(tr => tr.PlacementTest) // Include the test to get the title
+                .Include(tr => tr.PlacementTest)
                 .Where(tr => tr.userID == userId)
                 .OrderByDescending(tr => tr.CreatedAt)
+                .ToListAsync();
+
+            // Group by TestID and get only the latest result for each test
+            var latestResults = allResults
+                .GroupBy(tr => tr.TestID)
+                .Select(g => g.First()) // First is already the latest due to OrderByDescending
                 .Select(tr => new TestResultDTO
                 {
                     ResultID = tr.ResultID,
@@ -61,9 +68,10 @@ namespace ECM_BE.Services
                     TimeSpent = tr.TimeSpent,
                     CreatedAt = tr.CreatedAt
                 })
-                .ToListAsync();
+                .OrderByDescending(tr => tr.CreatedAt)
+                .ToList();
 
-            return results;
+            return latestResults;
         }
 
         public async Task<TestResultDTO> GetTestResultByIdAsync(int testResultId)
@@ -80,35 +88,12 @@ namespace ECM_BE.Services
 
         public async Task<TestResultDTO> CreateTestResultAsync(CreateTestResultRequestDTO requestDto)
         {
-            // Check if user already has a result for this test
-            var existingResult = await _context.TestResults
-                .FirstOrDefaultAsync(x => x.TestID == requestDto.TestID && x.userID == requestDto.UserID);
+            // Always create a new result - we'll show only the latest one in the results page
+            var tr = requestDto.ToTestResultFromCreate();
+            _context.TestResults.Add(tr);
+            await _context.SaveChangesAsync();
 
-            if (existingResult != null)
-            {
-                // Update existing result instead of creating new one
-                existingResult.UserAnswers = requestDto.UserAnswers;
-                existingResult.CorrectAnswers = requestDto.CorrectAnswers;
-                existingResult.IncorrectAnswers = requestDto.IncorrectAnswers;
-                existingResult.SkippedAnswers = requestDto.SkippedAnswers;
-                existingResult.OverallScore = requestDto.OverallScore;
-                existingResult.SectionScores = requestDto.SectionScores;
-                existingResult.LevelDetected = requestDto.LevelDetected;
-                existingResult.TimeSpent = requestDto.TimeSpent;
-                existingResult.CreatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-                return existingResult.ToTestResultDto();
-            }
-            else
-            {
-                // Create new result
-                var tr = requestDto.ToTestResultFromCreate();
-                _context.TestResults.Add(tr);
-                await _context.SaveChangesAsync();
-
-                return tr.ToTestResultDto();
-            }
+            return tr.ToTestResultDto();
         }
 
         public async Task<TestResultDTO> UpdateTestResultAsync(int ResultId, UpdateTestResultDTO requestDto)
