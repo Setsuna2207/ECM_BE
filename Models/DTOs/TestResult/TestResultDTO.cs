@@ -4,6 +4,7 @@
     {
         public int ResultID { get; set; }
         public int TestID { get; set; }
+        public string? TestTitle { get; set; } // Added test title
         public string UserID { get; set; } = null!;
         public string UserAnswers { get; set; } = null!; // Store JSON: {"1": 0, "2": 1, "3": 2, ...}
         public int CorrectAnswers { get; set; }

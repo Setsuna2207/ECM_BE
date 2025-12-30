@@ -42,11 +42,28 @@ namespace ECM_BE.Services
         {
             var results = await _context.TestResults
                 .AsNoTracking()
+                .Include(tr => tr.PlacementTest) // Include the test to get the title
                 .Where(tr => tr.userID == userId)
                 .OrderByDescending(tr => tr.CreatedAt)
+                .Select(tr => new TestResultDTO
+                {
+                    ResultID = tr.ResultID,
+                    TestID = tr.TestID,
+                    TestTitle = tr.PlacementTest != null ? tr.PlacementTest.Title : null,
+                    UserID = tr.userID,
+                    UserAnswers = tr.UserAnswers,
+                    CorrectAnswers = tr.CorrectAnswers,
+                    IncorrectAnswers = tr.IncorrectAnswers,
+                    SkippedAnswers = tr.SkippedAnswers,
+                    OverallScore = tr.OverallScore,
+                    SectionScores = tr.SectionScores,
+                    LevelDetected = tr.LevelDetected,
+                    TimeSpent = tr.TimeSpent,
+                    CreatedAt = tr.CreatedAt
+                })
                 .ToListAsync();
 
-            return results.Select(tr => tr.ToTestResultDto()).ToList();
+            return results;
         }
 
         public async Task<TestResultDTO> GetTestResultByIdAsync(int testResultId)
