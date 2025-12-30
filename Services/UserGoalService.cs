@@ -37,28 +37,109 @@ namespace ECM_BE.Services
         }
         public async Task<UserGoalDTO> CreateUserGoalAsync(CreateUserGoalRequestDTO requestDto)
         {
-            string userId = requestDto.UserID ?? "UnknownUser";
+            try
+            {
+                string userId = requestDto.UserID ?? "UnknownUser";
 
-            var entity = requestDto.ToUserGoalFromCreate(userId);
-            entity.userID = userId;
+                Console.WriteLine($"[CreateUserGoal] Creating new goal for user {userId}: {requestDto.Content}");
 
-            _context.UserGoals.Add(entity);
-            await _context.SaveChangesAsync();
+                // === CLEANUP: Archive old learning paths when creating a new goal ===
+                try
+                {
+                    var oldLearningPaths = await _context.LearningPaths
+                        .Where(lp => lp.userID == userId && lp.Status != "Archived" && lp.Status != "Completed")
+                        .ToListAsync();
 
-            return entity.ToUserGoalDto();
+                    if (oldLearningPaths.Any())
+                    {
+                        foreach (var oldPath in oldLearningPaths)
+                        {
+                            oldPath.Status = "Archived";
+                            oldPath.UpdatedAt = DateTime.UtcNow;
+                        }
+                        Console.WriteLine($"[CreateUserGoal] ✅ Archived {oldLearningPaths.Count} old learning paths");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CreateUserGoal] ⚠️ Warning: Could not archive old learning paths: {ex.Message}");
+                    // Continue anyway - this is not critical
+                }
+
+                var entity = requestDto.ToUserGoalFromCreate(userId);
+                entity.userID = userId;
+
+                _context.UserGoals.Add(entity);
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"[CreateUserGoal] ✅ Created new goal with ID {entity.UserGoalID}");
+
+                return entity.ToUserGoalDto();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[CreateUserGoal] ❌ Error: {ex.Message}");
+                Console.WriteLine($"[CreateUserGoal] ❌ Stack trace: {ex.StackTrace}");
+                throw new Exception($"Không thể tạo mục tiêu: {ex.Message}");
+            }
         }
         public async Task<UserGoalDTO> UpdateUserGoalAsync(int userGoalId, UpdateUserGoalDTO requestDto)
         {
-            var entity = await _context.UserGoals.FirstOrDefaultAsync(x => x.UserGoalID == userGoalId);
+            try
+            {
+                var entity = await _context.UserGoals.FirstOrDefaultAsync(x => x.UserGoalID == userGoalId);
 
-            if (entity == null)
-                throw new Exception("UserGoal not found");
+                if (entity == null)
+                    throw new Exception("UserGoal not found");
 
-            entity.Content = requestDto.Content;
+                Console.WriteLine($"[UpdateUserGoal] Updating goal {userGoalId} for user {entity.userID}");
+                Console.WriteLine($"[UpdateUserGoal] Old content: {entity.Content}");
+                Console.WriteLine($"[UpdateUserGoal] New content: {requestDto.Content}");
 
-            await _context.SaveChangesAsync();
+                // Check if content actually changed
+                bool contentChanged = entity.Content != requestDto.Content;
 
-            return entity.ToUserGoalDto();
+                entity.Content = requestDto.Content;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                // === CLEANUP: If goal content changed significantly, archive old learning paths ===
+                if (contentChanged)
+                {
+                    try
+                    {
+                        var oldLearningPaths = await _context.LearningPaths
+                            .Where(lp => lp.UserGoalID == userGoalId && lp.Status != "Archived" && lp.Status != "Completed")
+                            .ToListAsync();
+
+                        if (oldLearningPaths.Any())
+                        {
+                            foreach (var oldPath in oldLearningPaths)
+                            {
+                                oldPath.Status = "Archived";
+                                oldPath.UpdatedAt = DateTime.UtcNow;
+                            }
+                            Console.WriteLine($"[UpdateUserGoal] ✅ Archived {oldLearningPaths.Count} old learning paths due to goal change");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[UpdateUserGoal] ⚠️ Warning: Could not archive old learning paths: {ex.Message}");
+                        // Continue anyway - this is not critical
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"[UpdateUserGoal] ✅ Goal updated successfully");
+
+                return entity.ToUserGoalDto();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[UpdateUserGoal] ❌ Error: {ex.Message}");
+                Console.WriteLine($"[UpdateUserGoal] ❌ Stack trace: {ex.StackTrace}");
+                throw new Exception($"Không thể cập nhật mục tiêu: {ex.Message}");
+            }
         }
         public async Task DeleteUserGoalAsync(int userGoalId)
         {

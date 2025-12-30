@@ -48,22 +48,50 @@ namespace ECM_BE.Controllers
         [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> CreateUserGoal([FromBody] CreateUserGoalRequestDTO requestDto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var username = User.GetUsername();
-            var user = await _userManager.FindByNameAsync(username);
-            if (user == null)
-                return NotFound("Không tìm thấy người dùng");
-
             try
             {
+                Console.WriteLine($"[CreateUserGoalController] ===== REQUEST RECEIVED =====");
+                Console.WriteLine($"[CreateUserGoalController] Request DTO is null: {requestDto == null}");
+                
+                if (requestDto != null)
+                {
+                    Console.WriteLine($"[CreateUserGoalController] Content: '{requestDto.Content}'");
+                    Console.WriteLine($"[CreateUserGoalController] UserID: '{requestDto.UserID}'");
+                }
+                
+                Console.WriteLine($"[CreateUserGoalController] ModelState.IsValid: {ModelState.IsValid}");
+
+                if (!ModelState.IsValid)
+                {
+                    Console.WriteLine($"[CreateUserGoalController] ❌ ModelState is invalid:");
+                    foreach (var error in ModelState)
+                    {
+                        Console.WriteLine($"  Key: {error.Key}, Errors: {string.Join(", ", error.Value.Errors.Select(e => e.ErrorMessage))}");
+                    }
+                    return BadRequest(ModelState);
+                }
+
+                var username = User.GetUsername();
+                Console.WriteLine($"[CreateUserGoalController] Username from token: {username}");
+                
+                var user = await _userManager.FindByNameAsync(username);
+                if (user == null)
+                {
+                    Console.WriteLine($"[CreateUserGoalController] ❌ User not found: {username}");
+                    return NotFound("Không tìm thấy người dùng");
+                }
+
+                Console.WriteLine($"[CreateUserGoalController] User found: {user.Id}");
+
                 requestDto.UserID = user.Id;
                 var result = await _userGoalService.CreateUserGoalAsync(requestDto);
+                Console.WriteLine($"[CreateUserGoalController] ✅ Goal created successfully: {result.UserGoalID}");
                 return CreatedAtAction(nameof(GetUserGoalById), new { goalId = result.UserGoalID }, result);
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[CreateUserGoalController] ❌ Exception: {ex.Message}");
+                Console.WriteLine($"[CreateUserGoalController] ❌ Stack trace: {ex.StackTrace}");
                 return BadRequest(ex.Message);
             }
         }

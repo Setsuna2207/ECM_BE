@@ -10,6 +10,7 @@ namespace ECM_BE.Models.Mapper
             return new UserGoal
             {
                 Content = requestDto.Content,
+                UpdatedAt = DateTime.UtcNow
             };
         }
         public static UserGoalDTO ToUserGoalDto(this UserGoal requestDto)
