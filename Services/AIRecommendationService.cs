@@ -41,28 +41,30 @@ namespace ECM_BE.Services
                 throw new Exception("Không tìm thấy bài kiểm tra phù hợp với mục tiêu của bạn");
             }
 
-            // Create or update LearningPath
-            var learningPath = await _context.LearningPaths
-                .FirstOrDefaultAsync(lp => lp.UserGoalID == userGoal.UserGoalID && lp.Status != "Completed");
+            // Mark ALL old learning paths as archived when new goal is set
+            // This ensures only the newest learning path is active
+            var oldLearningPaths = await _context.LearningPaths
+                .Where(lp => lp.userID == request.UserID && lp.Status != "Archived")
+                .ToListAsync();
 
-            if (learningPath == null)
+            foreach (var oldPath in oldLearningPaths)
             {
-                learningPath = new LearningPath
-                {
-                    userID = request.UserID!,
-                    UserGoalID = userGoal.UserGoalID,
-                    InitialTestID = recommendedTest.TestID,
-                    Status = "TestRecommended",
-                    CreatedAt = DateTime.UtcNow
-                };
-                _context.LearningPaths.Add(learningPath);
+                oldPath.Status = "Archived";
+                oldPath.UpdatedAt = DateTime.UtcNow;
             }
-            else
+
+            Console.WriteLine($"[AnalyzeGoal] Archived {oldLearningPaths.Count} old learning paths for user {request.UserID}");
+
+            // Create NEW learning path for the new goal
+            var learningPath = new LearningPath
             {
-                learningPath.InitialTestID = recommendedTest.TestID;
-                learningPath.Status = "TestRecommended";
-                learningPath.UpdatedAt = DateTime.UtcNow;
-            }
+                userID = request.UserID!,
+                UserGoalID = userGoal.UserGoalID,
+                InitialTestID = recommendedTest.TestID,
+                Status = "TestRecommended",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.LearningPaths.Add(learningPath);
 
             await _context.SaveChangesAsync();
 
@@ -82,6 +84,9 @@ namespace ECM_BE.Services
 
         public async Task<CourseRecommendationResponseDTO> RecommendCoursesBasedOnResultAsync(CourseRecommendationRequestDTO request)
         {
+            Console.WriteLine($"[RecommendCourses] Learning Path ID: {request.LearningPathID}");
+            Console.WriteLine($"[RecommendCourses] Result ID: {request.ResultID}");
+
             // Get learning path
             var learningPath = await _context.LearningPaths
                 .Include(lp => lp.UserGoal)
@@ -91,6 +96,9 @@ namespace ECM_BE.Services
             {
                 throw new Exception("Không tìm thấy lộ trình học tập");
             }
+
+            Console.WriteLine($"[RecommendCourses] Learning Path Status: {learningPath.Status}");
+            Console.WriteLine($"[RecommendCourses] Goal: {learningPath.UserGoal?.Content}");
 
             // Get test result
             var testResult = await _context.TestResults
@@ -104,39 +112,67 @@ namespace ECM_BE.Services
 
             // Analyze weak skills from test result
             var weakSkills = AnalyzeWeakSkills(testResult);
+            Console.WriteLine($"[RecommendCourses] Weak Skills: {string.Join(", ", weakSkills)}");
 
             // Get goal information
             var goalContent = learningPath.UserGoal.Content;
             var parsedGoal = ParseUserGoal(goalContent);
+            Console.WriteLine($"[RecommendCourses] Parsed Goal - Category: {parsedGoal.Category}, Skill: {parsedGoal.Skill}");
 
             // Find courses that match weak skills and goal
             var recommendedCourses = await FindRecommendedCourses(parsedGoal, weakSkills, testResult);
+            Console.WriteLine($"[RecommendCourses] Found {recommendedCourses.Count} recommended courses");
 
-            // Create AI Feedback
-            var aiFeedback = new AIFeedback
+            // Create or update AI Feedback
+            var existingFeedback = await _context.AIFeedbacks
+                .FirstOrDefaultAsync(f => f.ResultID == testResult.ResultID);
+
+            if (existingFeedback != null)
             {
-                ResultID = testResult.ResultID,
-                WeakSkill = string.Join(", ", weakSkills),
-                RcmCourses = JsonConvert.SerializeObject(recommendedCourses.Select(c => c.CourseID).ToList()),
-                FeedbackSummary = GenerateFeedbackSummary(testResult, weakSkills, parsedGoal),
-                CreatedAt = DateTime.UtcNow
-            };
-            _context.AIFeedbacks.Add(aiFeedback);
+                // Update existing feedback
+                existingFeedback.WeakSkill = string.Join(", ", weakSkills);
+                existingFeedback.RcmCourses = JsonConvert.SerializeObject(recommendedCourses.Select(c => c.CourseID).ToList());
+                existingFeedback.FeedbackSummary = GenerateFeedbackSummary(testResult, weakSkills, parsedGoal);
+                Console.WriteLine($"[RecommendCourses] Updated existing AI feedback for result {testResult.ResultID}");
+            }
+            else
+            {
+                // Create new feedback
+                var aiFeedback = new AIFeedback
+                {
+                    ResultID = testResult.ResultID,
+                    WeakSkill = string.Join(", ", weakSkills),
+                    RcmCourses = JsonConvert.SerializeObject(recommendedCourses.Select(c => c.CourseID).ToList()),
+                    FeedbackSummary = GenerateFeedbackSummary(testResult, weakSkills, parsedGoal),
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.AIFeedbacks.Add(aiFeedback);
+                Console.WriteLine($"[RecommendCourses] Created new AI feedback for result {testResult.ResultID}");
+            }
 
             // Update learning path
             learningPath.InitialResultID = testResult.ResultID;
-            learningPath.RecommendedCourses = JsonConvert.SerializeObject(recommendedCourses.Select(c => c.CourseID).ToList());
+            learningPath.RecommendedCourses = JsonConvert.SerializeObject(recommendedCourses.Select(c => new
+            {
+                courseID = c.CourseID,
+                reason = c.Reason,
+                priority = c.Priority
+            }).ToList());
             learningPath.Status = "CoursesRecommended";
             learningPath.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            Console.WriteLine($"[RecommendCourses] Updated learning path {learningPath.LearningPathID} with recommendations");
+
+            // Get the feedback summary for response
+            var feedbackSummary = existingFeedback?.FeedbackSummary ?? GenerateFeedbackSummary(testResult, weakSkills, parsedGoal);
 
             return new CourseRecommendationResponseDTO
             {
                 LearningPathID = learningPath.LearningPathID,
                 RecommendedCourses = recommendedCourses,
                 WeakSkills = string.Join(", ", weakSkills),
-                FeedbackSummary = aiFeedback.FeedbackSummary,
+                FeedbackSummary = feedbackSummary,
                 Message = "Dựa trên kết quả kiểm tra của bạn, chúng tôi đề xuất các khóa học sau để giúp bạn đạt mục tiêu."
             };
         }
@@ -335,6 +371,9 @@ namespace ECM_BE.Services
                 .Include(c => c.Categories)
                 .ToListAsync();
 
+            Console.WriteLine($"[FindRecommendedCourses] Total courses in database: {courses.Count}");
+            Console.WriteLine($"[FindRecommendedCourses] Looking for Category: {parsedGoal.Category}, Skill: {parsedGoal.Skill}");
+
             var recommendedCourses = new List<RecommendedCourseDTO>();
             int priority = 1;
 
@@ -343,47 +382,54 @@ namespace ECM_BE.Services
                 var matchScore = 0;
                 var reasons = new List<string>();
 
-                // Check if course matches the goal category
+                // Get course categories as lowercase strings
                 var courseCategories = course.Categories.Select(c => c.Name.ToLower()).ToList();
+                Console.WriteLine($"[FindRecommendedCourses] Course {course.CourseID} '{course.Title}' has categories: {string.Join(", ", courseCategories)}");
 
-                if (courseCategories.Any(cat => cat.Contains(parsedGoal.Category.ToLower())))
+                // STRICT MATCHING: Course MUST match BOTH category AND skill
+                bool matchesCategory = courseCategories.Any(cat => cat.Contains(parsedGoal.Category.ToLower()));
+                bool matchesSkill = parsedGoal.Skill == "ALL" || courseCategories.Any(cat => cat.Contains(parsedGoal.Skill.ToLower()));
+
+                Console.WriteLine($"[FindRecommendedCourses] Course {course.CourseID}: matchesCategory={matchesCategory}, matchesSkill={matchesSkill}");
+
+                // Skip course if it doesn't match BOTH category AND skill
+                if (!matchesCategory || !matchesSkill)
                 {
-                    matchScore += 3;
-                    reasons.Add($"Phù hợp với mục tiêu {parsedGoal.Category}");
+                    continue;
                 }
 
-                // Check if course addresses weak skills
+                // Course matches both category and skill - add base score
+                matchScore += 5;
+                reasons.Add($"Phù hợp với mục tiêu {parsedGoal.Category} {parsedGoal.Skill}");
+
+                // Bonus points if course addresses weak skills
                 foreach (var weakSkill in weakSkills)
                 {
                     if (courseCategories.Any(cat => cat.Contains(weakSkill.ToLower())))
                     {
                         matchScore += 2;
                         reasons.Add($"Cải thiện kỹ năng yếu: {weakSkill}");
+                        break; // Only add bonus once per course
                     }
                 }
 
-                // Check if course matches the skill focus
-                if (parsedGoal.Skill != "ALL" && courseCategories.Any(cat => cat.Contains(parsedGoal.Skill.ToLower())))
+                // Add course to recommendations
+                recommendedCourses.Add(new RecommendedCourseDTO
                 {
-                    matchScore += 2;
-                    reasons.Add($"Tập trung vào {parsedGoal.Skill}");
-                }
+                    CourseID = course.CourseID,
+                    Title = course.Title ?? "Untitled Course",
+                    Description = course.Description,
+                    ThumbnailUrl = course.ThumbnailUrl,
+                    Reason = string.Join(". ", reasons),
+                    Priority = priority++
+                });
 
-                if (matchScore > 0)
-                {
-                    recommendedCourses.Add(new RecommendedCourseDTO
-                    {
-                        CourseID = course.CourseID,
-                        Title = course.Title ?? "Untitled Course",
-                        Description = course.Description,
-                        ThumbnailUrl = course.ThumbnailUrl,
-                        Reason = string.Join(". ", reasons),
-                        Priority = priority++
-                    });
-                }
+                Console.WriteLine($"[FindRecommendedCourses] ✅ Course {course.CourseID} ADDED to recommendations");
             }
 
-            // Sort by match score (implicit in priority) and return top 6
+            Console.WriteLine($"[FindRecommendedCourses] Total recommended courses: {recommendedCourses.Count}");
+
+            // Sort by match score (higher score = higher priority) and return top 6
             return recommendedCourses.OrderBy(c => c.Priority).Take(6).ToList();
         }
 
