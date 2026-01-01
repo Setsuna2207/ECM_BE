@@ -14,6 +14,14 @@ namespace ECM_BE.Services
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _config;
 
+        private const string SystemPrompt = @"
+                You are an AI assistant for an e-learning platform.
+                You must recommend courses based ONLY on the provided data.
+                You must NOT invent courses.
+                You must return VALID JSON ONLY.
+                Do not include any text outside JSON.
+                ";
+
         public AICourseRcmService(
             AppDbContext context,
             HttpClient httpClient,
@@ -26,16 +34,43 @@ namespace ECM_BE.Services
 
         public async Task<CourseRcmDTO?> RecommendCourseAsync(string userId)
         {
+            // User goal
             var userGoal = await _context.UserGoals
                 .FirstOrDefaultAsync(x => x.userID == userId);
 
+            if (userGoal == null)
+                return null;
+
+            // Test result
             var testResult = await _context.TestResults
                 .Where(x => x.userID == userId)
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            if (userGoal == null || testResult == null) return null;
+            if (testResult == null)
+                return null;
 
+            // Parse section scores
+            Dictionary<string, float>? sectionScores = null;
+
+            if (!string.IsNullOrEmpty(testResult.SectionScores))
+            {
+                try
+                {
+                    sectionScores = JsonSerializer.Deserialize<Dictionary<string, float>>(
+                        testResult.SectionScores,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                }
+                catch
+                {
+                    sectionScores = null;
+                }
+            }
+
+            // Courses data
             var courses = await _context.Courses
                 .Include(c => c.Categories)
                 .Select(c => new
@@ -50,66 +85,119 @@ namespace ECM_BE.Services
                 })
                 .ToListAsync();
 
-            var prompt = $@"
-                        Bạn là trợ lý học tập thông minh cho hệ thống ECM.
+            if (!courses.Any())
+                return null;
 
-                        Mục tiêu học tập:
-                        {userGoal.Content}
+            // Build user prompt
+            var skillScoreText = sectionScores == null
+                ? "No detailed skill scores available."
+                : string.Join(
+                    "\n",
+                    sectionScores.Select(s => $"  - {s.Key}: {s.Value}")
+                  );
 
-                        Kết quả bài đánh giá:
-                        - Điểm tổng: {testResult.OverallScore}
-                        - Điểm theo kỹ năng:
-                        {testResult.SectionScores}
+            var userPrompt = $@"
+                    User learning goal:
+                    ""{userGoal.Content}""
 
-                        Danh sách khóa học hiện có:
-                        {JsonSerializer.Serialize(courses)}
+                    Placement test result:
+                    - Overall score: {testResult.OverallScore}
+                    - Detected level: {testResult.LevelDetected ?? "Unknown"}
+                    - Skill scores:
+                    {skillScoreText}
 
-                        Yêu cầu:
-                        - Gợi ý tối đa 3 khóa học phù hợp
-                        - Ưu tiên kỹ năng yếu
-                        - Giải thích rõ lý do
-                        - Trả về JSON theo format:
-                        {{ ""recommendations"": [{{ ""courseId"": number, ""reason"": string }}] }}
-                        ";
+                    Available courses:
+                    {JsonSerializer.Serialize(courses)}
 
-            var response = await CallOpenAIAsync(prompt);
-            if (response == null) return null;
+                    Rules:
+                    1. Only recommend courses from the provided list.
+                    2. Prioritize courses that address weak skills.
+                    3. Recommend at most 3 courses.
 
-            return JsonSerializer.Deserialize<CourseRcmDTO>(
-                response,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    Return JSON in this format:
+                    {{
+                      ""recommendations"": [
+                        {{
+                          ""courseId"": number,
+                          ""reason"": string
+                        }}
+                      ]
+                    }}
+                    ";
+
+            // OpenAI API call
+            var aiRawResponse = await CallOpenAIAsync(SystemPrompt, userPrompt);
+            if (aiRawResponse == null)
+                return null;
+
+            // Parse AI response
+            CourseRcmDTO? aiResult;
+            try
+            {
+                aiResult = JsonSerializer.Deserialize<CourseRcmDTO>(
+                    aiRawResponse,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (aiResult == null || aiResult.Recommendations == null)
+                return null;
+
+            // Filter courseIds
+            var validCourseIds = courses
+                .Select(c => c.courseId)
+                .ToHashSet();
+
+            aiResult.Recommendations = aiResult.Recommendations
+                .Where(r => validCourseIds.Contains(r.CourseId))
+                .Take(3)
+                .ToList();
+
+            return aiResult;
         }
 
-        private async Task<string?> CallOpenAIAsync(string prompt)
+        private async Task<string?> CallOpenAIAsync(
+            string systemPrompt,
+            string userPrompt)
         {
             var apiKey = _config["OpenAI:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+                return null;
 
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", apiKey);
 
-            var body = new
+            var requestBody = new
             {
                 model = "gpt-4.1-mini",
                 messages = new[]
                 {
-                    new { role = "system", content = "Bạn là trợ lý AI học tập." },
-                    new { role = "user", content = prompt }
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = userPrompt }
                 },
-                temperature = 0.3
+                temperature = 0.2
             };
 
             var content = new StringContent(
-                JsonSerializer.Serialize(body),
+                JsonSerializer.Serialize(requestBody),
                 Encoding.UTF8,
                 "application/json");
 
-            var res = await _httpClient.PostAsync(
+            var response = await _httpClient.PostAsync(
                 "https://api.openai.com/v1/chat/completions",
                 content);
 
-            if (!res.IsSuccessStatusCode) return null;
+            if (!response.IsSuccessStatusCode)
+                return null;
 
-            var json = await res.Content.ReadAsStringAsync();
+            var json = await response.Content.ReadAsStringAsync();
+
             using var doc = JsonDocument.Parse(json);
 
             return doc.RootElement
