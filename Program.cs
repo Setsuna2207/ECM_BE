@@ -143,6 +143,15 @@ builder.Services.AddScoped<ITestResultService, TestResultService>();
 builder.Services.AddScoped<IAIFeedbackService, AIFeedbackService>();
 builder.Services.AddScoped<ILearningPathService, LearningPathService>();
 builder.Services.AddScoped<IFileConversionService, FileConversionService>();
+builder.Services.AddScoped<IAITestRcmService, AITestRcmService>();
+builder.Services.AddScoped<IAICourseRcmService, AICourseRcmService>();
+
+builder.Services.AddHttpClient<OpenAIService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.openai.com/v1/");
+    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {builder.Configuration["OpenAI:ApiKey"]}");
+});
+
 
 builder.Services.AddHttpContextAccessor();
 

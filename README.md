@@ -63,6 +63,9 @@ Create `appsettings.json`:
   "ConnectionStrings": {
     "SqlServerConnection": "Server=localhost;Database=ECM;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
   }
+    "OpenAI": {
+    "ApiKey": "YOUR_API_KEY"
+  }
 }
 ```
 
