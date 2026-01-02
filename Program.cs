@@ -140,8 +140,6 @@ builder.Services.AddScoped<IPlacementTestService, PlacementTestService>();
 builder.Services.AddScoped<IFollowingService, FollowingService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<ITestResultService, TestResultService>();
-builder.Services.AddScoped<IAIFeedbackService, AIFeedbackService>();
-builder.Services.AddScoped<ILearningPathService, LearningPathService>();
 builder.Services.AddScoped<IFileConversionService, FileConversionService>();
 builder.Services.AddScoped<IAITestRcmService, AITestRcmService>();
 builder.Services.AddScoped<IAICourseRcmService, AICourseRcmService>();

@@ -22,9 +22,6 @@ public partial class User : IdentityUser
         public virtual ICollection<UserGoal> UserGoals { get; set; } = new List<UserGoal>();
 
         [InverseProperty("User")]
-        public virtual ICollection<LearningPath> LearningPaths { get; set; } = new List<LearningPath>();
-
-        [InverseProperty("User")]
         public virtual ICollection<Following> Followings { get; set; } = new List<Following>();
 
         [InverseProperty("User")]

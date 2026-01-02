@@ -43,29 +43,6 @@ namespace ECM_BE.Services
 
                 Console.WriteLine($"[CreateUserGoal] Creating new goal for user {userId}: {requestDto.Content}");
 
-                // === CLEANUP: Archive old learning paths when creating a new goal ===
-                try
-                {
-                    var oldLearningPaths = await _context.LearningPaths
-                        .Where(lp => lp.userID == userId && lp.Status != "Archived" && lp.Status != "Completed")
-                        .ToListAsync();
-
-                    if (oldLearningPaths.Any())
-                    {
-                        foreach (var oldPath in oldLearningPaths)
-                        {
-                            oldPath.Status = "Archived";
-                            oldPath.UpdatedAt = DateTime.UtcNow;
-                        }
-                        Console.WriteLine($"[CreateUserGoal] ✅ Archived {oldLearningPaths.Count} old learning paths");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[CreateUserGoal] ⚠️ Warning: Could not archive old learning paths: {ex.Message}");
-                    // Continue anyway - this is not critical
-                }
-
                 var entity = requestDto.ToUserGoalFromCreate(userId);
                 entity.userID = userId;
 
@@ -96,37 +73,8 @@ namespace ECM_BE.Services
                 Console.WriteLine($"[UpdateUserGoal] Old content: {entity.Content}");
                 Console.WriteLine($"[UpdateUserGoal] New content: {requestDto.Content}");
 
-                // Check if content actually changed
-                bool contentChanged = entity.Content != requestDto.Content;
-
                 entity.Content = requestDto.Content;
                 entity.UpdatedAt = DateTime.UtcNow;
-
-                // === CLEANUP: If goal content changed significantly, archive old learning paths ===
-                if (contentChanged)
-                {
-                    try
-                    {
-                        var oldLearningPaths = await _context.LearningPaths
-                            .Where(lp => lp.UserGoalID == userGoalId && lp.Status != "Archived" && lp.Status != "Completed")
-                            .ToListAsync();
-
-                        if (oldLearningPaths.Any())
-                        {
-                            foreach (var oldPath in oldLearningPaths)
-                            {
-                                oldPath.Status = "Archived";
-                                oldPath.UpdatedAt = DateTime.UtcNow;
-                            }
-                            Console.WriteLine($"[UpdateUserGoal] ✅ Archived {oldLearningPaths.Count} old learning paths due to goal change");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[UpdateUserGoal] ⚠️ Warning: Could not archive old learning paths: {ex.Message}");
-                        // Continue anyway - this is not critical
-                    }
-                }
 
                 await _context.SaveChangesAsync();
 

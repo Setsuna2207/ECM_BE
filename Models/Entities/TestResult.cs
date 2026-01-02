@@ -50,7 +50,4 @@ public partial class TestResult
     [ForeignKey("TestID")]
     [InverseProperty("TestResults")]
     public virtual PlacementTest PlacementTest { get; set; } = null!;
-
-    [InverseProperty(nameof(AIFeedback.TestResult))]
-    public virtual AIFeedback? AIFeedback { get; set; }
 }
