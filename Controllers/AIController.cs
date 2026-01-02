@@ -36,5 +36,13 @@ namespace ECM_BE.Controllers
             var result = await _courseService.RecommendCourseAsync(userId!);
             return Ok(result);
         }
+
+        [HttpGet("recommend-course/{userId}")]
+        [Authorize(Policy = "AdminPolicy")]
+        public async Task<IActionResult> RecommendCourseForUser(string userId)
+        {
+            var result = await _courseService.RecommendCourseAsync(userId);
+            return Ok(result);
+        }
     }
 }
