@@ -122,6 +122,45 @@ namespace ECM_BE.Services
                 throw;
             }
         }
+
+        public async Task<HistoryDTO?> GetHistoryByCourseAsync(string userId, int courseId)
+        {
+            try
+            {
+                var history = await _context.Histories
+                    .AsNoTracking()
+                    .Where(h => h.userID == userId && h.CourseID == courseId)
+                    .Include(h => h.Course)
+                    .Select(h => new HistoryDTO
+                    {
+                        HistoryID = h.HistoryID,
+                        UserID = h.userID,
+                        CourseID = h.CourseID,
+                        Progress = h.Progress,
+                        LastAccessed = h.LastAccessed,
+
+                        CourseTitle = h.Course.Title,
+                        ThumbnailUrl = h.Course.ThumbnailUrl,
+
+                        TotalLessons = h.Course.Lessons.Count,
+                        CompletedLessons = _context.Lessons
+                        .Count(l => l.CourseID == h.CourseID &&
+                                    l.Quizzes.Any(q => _context.QuizResults
+                                        .Any(qr => qr.userID == userId && qr.QuizID == q.QuizID)))
+                    })
+                    .FirstOrDefaultAsync();
+
+                return history;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+            {
+                throw;
+            }
+        }
         public async Task<HistoryDTO> UpdateHistoryAsync(string userId, int courseID)
         {
             try

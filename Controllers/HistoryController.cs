@@ -46,6 +46,29 @@ namespace ECM_BE.Controllers.V1
             }
         }
 
+        [HttpGet("{courseId}")]
+        [Authorize(Policy = "UserPolicy")]
+        public async Task<IActionResult> GetHistoryByCourse([FromRoute] int courseId)
+        {
+            var username = User.GetUsername();
+            var user = await _userManager.FindByNameAsync(username);
+            if (user == null)
+                return NotFound("Không tìm thấy người dùng");
+
+            try
+            {
+                var result = await _historyService.GetHistoryByCourseAsync(user.Id, courseId);
+                if (result == null)
+                    return NotFound("Không tìm thấy lịch sử học tập cho khóa học này");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi không xác định xảy ra trong HistoryController.GetHistoryByCourse");
+                return StatusCode(500, "Đã xảy ra lỗi không xác định.");
+            }
+        }
+
         [HttpPost("{courseId}")]
         [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> CreateHistory([FromRoute] int courseId)

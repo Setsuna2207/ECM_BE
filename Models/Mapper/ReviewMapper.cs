@@ -13,7 +13,7 @@ namespace ECM_BE.Models.Mapper
                 userID = userID,
                 ReviewScore = requestDto.ReviewScore,
                 ReviewContent = requestDto.ReviewContent,
-                CreatedAt = requestDto.CreatedAt,
+                CreatedAt = DateTime.Now,
             };
         }
         public static ReviewDTO ToReviewDto(this Review requestDto)

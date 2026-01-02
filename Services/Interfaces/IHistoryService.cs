@@ -7,6 +7,7 @@ namespace ECM_BE.Services.Interfaces
     {
         Task<History> CreateHistoryAsync(string userId, int courseID);
         Task<ICollection<HistoryDTO>> GetHistoriesAsync(string userId);
+        Task<HistoryDTO?> GetHistoryByCourseAsync(string userId, int courseID);
         Task<HistoryDTO> UpdateHistoryAsync(string userId, int courseID);
         Task<HistoryDTO> UpdateProgressAsync(string userId, int courseID);
         Task DeleteHistoryAsync(string userId, int courseID);

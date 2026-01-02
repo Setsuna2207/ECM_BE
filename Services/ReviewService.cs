@@ -81,6 +81,24 @@ namespace ECM_BE.Services
         {
             try
             {
+                // Check if user has completed the course
+                var history = await _context.Histories
+                    .FirstOrDefaultAsync(h => h.userID == userID && h.CourseID == requestDto.CourseID);
+                
+                if (history == null || history.Progress < 100)
+                {
+                    throw new InvalidOperationException("Bạn cần hoàn thành khóa học trước khi đánh giá.");
+                }
+
+                // Check if user already has a review for this course
+                var existingReview = await _context.Reviews
+                    .FirstOrDefaultAsync(r => r.userID == userID && r.CourseID == requestDto.CourseID);
+                
+                if (existingReview != null)
+                {
+                    throw new InvalidOperationException("Bạn đã đánh giá khóa học này rồi. Vui lòng chỉnh sửa đánh giá hiện tại.");
+                }
+
                 var review = requestDto.ToReviewFromCreate(userID);
                 await _context.Reviews.AddAsync(review);
                 await _context.SaveChangesAsync();
@@ -107,7 +125,7 @@ namespace ECM_BE.Services
             }
             review.ReviewScore = requestDto.ReviewScore;
             review.ReviewContent = requestDto.ReviewContent;
-            review.CreatedAt = requestDto.CreatedAt;
+            review.CreatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
             return review.ToReviewDto();
