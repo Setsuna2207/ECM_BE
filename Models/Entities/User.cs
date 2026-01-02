@@ -35,5 +35,8 @@ public partial class User : IdentityUser
 
         [InverseProperty("User")]
         public virtual ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
+
+        [InverseProperty("User")]
+        public virtual ICollection<AIRcm> AIRcms { get; set; } = new List<AIRcm>();
     }
 

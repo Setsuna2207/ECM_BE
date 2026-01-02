@@ -28,6 +28,7 @@ public partial class AppDbContext : IdentityDbContext<User>
     public virtual DbSet<QuizResult> QuizResults { get; set; }
     public virtual DbSet<PlacementTest> PlacementTests { get; set; }
     public virtual DbSet<TestResult> TestResults { get; set; }
+    public virtual DbSet<AIRcm> AIRcms { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -294,6 +295,25 @@ public partial class AppDbContext : IdentityDbContext<User>
                 .HasForeignKey(e => e.userID)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_UserGoals_Users");
+        });
+
+        // AIRcm Configuration
+        modelBuilder.Entity<AIRcm>(entity =>
+        {
+            entity.HasKey(e => e.RcmID);
+            entity.Property(e => e.RcmCourses)
+                .IsRequired()
+                .HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasDefaultValueSql("getdate()");
+
+            // n-1: AIRcm -> User
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.AIRcms)
+                .HasForeignKey(e => e.userID)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_AIRcms_Users");
         });
 
         OnModelCreatingPartial(modelBuilder);

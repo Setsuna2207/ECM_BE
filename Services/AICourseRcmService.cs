@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using ECM_BE.Data;
 using ECM_BE.Models.DTOs.AI;
+using ECM_BE.Models.Entities;
 using ECM_BE.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -34,6 +35,38 @@ namespace ECM_BE.Services
 
         public async Task<CourseRcmDTO?> RecommendCourseAsync(string userId)
         {
+            // First, try to get saved recommendations from database
+            var savedRcm = await _context.AIRcms
+                .Where(x => x.userID == userId)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (savedRcm != null)
+            {
+                try
+                {
+                    var recommendations = JsonSerializer.Deserialize<List<CourseRcmItemDTO>>(
+                        savedRcm.RcmCourses,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                    if (recommendations != null && recommendations.Any())
+                    {
+                        Console.WriteLine($"[AICourseRcm] ✅ Retrieved saved recommendations for user {userId}");
+                        return new CourseRcmDTO { Recommendations = recommendations };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AICourseRcm] ⚠️ Error parsing saved recommendations: {ex.Message}");
+                }
+            }
+
+            // If no saved recommendations, generate new ones
+            Console.WriteLine($"[AICourseRcm] Generating new recommendations for user {userId}");
+
             // User goal
             var userGoal = await _context.UserGoals
                 .FirstOrDefaultAsync(x => x.userID == userId);
@@ -159,6 +192,29 @@ namespace ECM_BE.Services
                 .Take(3)
                 .ToList();
 
+            // Save recommendations to database
+            try
+            {
+                var rcmJson = JsonSerializer.Serialize(aiResult.Recommendations);
+                
+                var aiRcm = new AIRcm
+                {
+                    userID = userId,
+                    RcmCourses = rcmJson,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.AIRcms.Add(aiRcm);
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine($"[AICourseRcm] ✅ Saved recommendations for user {userId}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AICourseRcm] ⚠️ Warning: Could not save recommendations: {ex.Message}");
+                // Continue anyway - this is not critical
+            }
+
             return aiResult;
         }
 
@@ -175,7 +231,7 @@ namespace ECM_BE.Services
 
             var requestBody = new
             {
-                model = "gpt-4.1-mini",
+                model = "gpt-4o-mini",
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
