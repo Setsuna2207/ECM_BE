@@ -42,6 +42,12 @@ namespace ECM_BE.Controllers
         public async Task<IActionResult> RecommendCourseForUser(string userId)
         {
             var result = await _courseService.RecommendCourseAsync(userId);
+            
+            if (result == null)
+            {
+                return NotFound(new { message = "Người dùng chưa có mục tiêu học tập hoặc chưa hoàn thành bài kiểm tra đầu vào" });
+            }
+            
             return Ok(result);
         }
     }
