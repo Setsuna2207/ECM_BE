@@ -32,6 +32,7 @@ namespace ECM_BE.Services
                 {
                     UserName = registerDTO.UserName,
                     Email = registerDTO.Email,
+                    FullName = registerDTO.FullName,
                     CreatedAt = DateTime.UtcNow,
                 };
                 var createUser = await _userManager.CreateAsync(user, registerDTO.Password);
