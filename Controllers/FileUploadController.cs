@@ -14,12 +14,14 @@ namespace ECM_BE.Controllers
         private static readonly Dictionary<string, string[]> FileTypeConfig = new()
         {
             { "video", new[] { ".mp4", ".avi", ".mov", ".wmv", ".flv", ".webm", ".mkv", ".m4v" } },
-            { "document", new[] { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".txt", ".xls", ".xlsx" } }
+            { "document", new[] { ".pdf", ".doc", ".docx", ".ppt", ".pptx", ".txt", ".xls", ".xlsx" } },
+            { "image", new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg" } }
         };
 
         // Size limits in bytes
         private const long MaxVideoSize = 5L * 1024 * 1024 * 1024; // 5 GB for videos
         private const long MaxDocumentSize = 100L * 1024 * 1024; // 100 MB for documents
+        private const long MaxImageSize = 10L * 1024 * 1024; // 10 MB for images
 
         public FileUploadController(IWebHostEnvironment environment, ILogger<FileUploadController> logger)
         {
@@ -39,7 +41,7 @@ namespace ECM_BE.Controllers
             // Normalize type
             type = type.ToLowerInvariant();
             if (!FileTypeConfig.ContainsKey(type))
-                return BadRequest(new { message = "Invalid file type. Use 'video' or 'document'" });
+                return BadRequest(new { message = "Invalid file type. Use 'video', 'document', or 'image'" });
 
             // Validate file extension
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -54,7 +56,9 @@ namespace ECM_BE.Controllers
             }
 
             // Validate file size
-            var maxSize = type == "video" ? MaxVideoSize : MaxDocumentSize;
+            var maxSize = type == "video" ? MaxVideoSize : 
+                         type == "image" ? MaxImageSize : 
+                         MaxDocumentSize;
             if (file.Length > maxSize)
             {
                 var maxSizeMB = maxSize / (1024.0 * 1024.0);
@@ -112,10 +116,12 @@ namespace ECM_BE.Controllers
             // Normalize type
             type = type.ToLowerInvariant();
             if (!FileTypeConfig.ContainsKey(type))
-                return BadRequest(new { message = "Invalid file type. Use 'video' or 'document'" });
+                return BadRequest(new { message = "Invalid file type. Use 'video', 'document', or 'image'" });
 
             var allowedExtensions = FileTypeConfig[type];
-            var maxSize = type == "video" ? MaxVideoSize : MaxDocumentSize;
+            var maxSize = type == "video" ? MaxVideoSize : 
+                         type == "image" ? MaxImageSize : 
+                         MaxDocumentSize;
             var uploadedFiles = new List<object>();
             var errors = new List<string>();
 
@@ -236,6 +242,12 @@ namespace ECM_BE.Controllers
                         maxSize = $"{MaxDocumentSize / (1024.0 * 1024.0):F0} MB",
                         maxSizeBytes = MaxDocumentSize,
                         allowedExtensions = FileTypeConfig["document"]
+                    },
+                    image = new
+                    {
+                        maxSize = $"{MaxImageSize / (1024.0 * 1024.0):F0} MB",
+                        maxSizeBytes = MaxImageSize,
+                        allowedExtensions = FileTypeConfig["image"]
                     }
                 }
             });

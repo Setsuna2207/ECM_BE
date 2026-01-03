@@ -157,10 +157,7 @@ namespace ECM_BE.Services
                 throw;
             }
         }
-            {
-                throw;
-            }
-        }
+
         public async Task<HistoryDTO> UpdateHistoryAsync(string userId, int courseID)
         {
             try
