@@ -1,48 +1,59 @@
 # ECM_BE - English Course Management Backend
 
-Backend API built with **.NET 8** and **Entity Framework Core**.
+Backend API built with **.NET 8** and **Entity Framework Core** for managing English courses, lessons, quizzes, and user progress.
 
-Frontend: [https://github.com/Setsuna2207/ECM_FE]
+Frontend: [ECM_FE](https://github.com/Setsuna2207/ECM_FE)
 
 ---
 
 ## 🚀 Tech Stack
-- .NET 8
-- Entity Framework Core
-- ASP.NET Core Identity
-- JWT Authentication
-- SQL Server
+- **.NET 8** + **Entity Framework Core**
+- **ASP.NET Core Identity** + **JWT Authentication**
+- **SQL Server**
+- **OpenAI API** - AI recommendations
+- **iTextSharp** - PDF processing
 
 ---
 
-## 📂 Project Structure
+## �  Project Structure
 
 ```
-.
-├── Controllers/               # API Controllers
-├── Services/                  # Business Logic Services
-│   └── Interfaces/            # Service Interfaces
-├── Models/                    # Data Models, DTOs & Mappers
-│   ├── Entities/              # Database Entities
-│   ├── DTOs/                  # Data Transfer Objects
-│   └── Mapper/                # Entity-DTO Mappers
-├── Data/                      # DbContext & Database Configuration
-├── Configuration/             # Application Configuration
-├── Exceptions/                # Custom Exception Handling
-├── Extensions/                # Extension Methods
-├── Migrations/                # EF Core Migrations
-├── uploads/                   # File Upload Storage (Local)
-├── wwwroot/                   # Static Files (Local)
-├── appsettings.json           # Application Settings
-└── Program.cs                 # Application Entry Point
+ECM_BE/
+├── Controllers/          # API endpoints
+├── Services/             # Business logic
+│   └── Interfaces/
+├── Models/
+│   ├── Entities/         # Database models
+│   ├── DTOs/             # Data transfer objects
+│   └── Mapper/
+├── Data/                 # DbContext
+├── Configuration/
+├── Exceptions/
+├── Migrations/           # EF migrations
+├── uploads/              # File storage
+│   ├── videos/
+│   ├── documents/
+│   └── images/
+└── appsettings.json
 ```
 
 ---
 
-## ⚙️ Configuration
+## 📦 Setup
 
-Create `appsettings.json`:
+### Prerequisites
+- **.NET 8 SDK** - [Download](https://dotnet.microsoft.com/download/dotnet/8.0)
+- **SQL Server**
 
+### Installation
+```bash
+git clone https://github.com/Setsuna2207/ECM_BE.git
+cd ECM_BE
+dotnet restore
+```
+
+### Configuration
+Update `appsettings.json`:
 ```json
 {
   "EmailConfiguration": {
@@ -50,119 +61,90 @@ Create `appsettings.json`:
     "SmtpServer": "smtp.gmail.com",
     "Port": 587,
     "Username": "your-email@gmail.com",
-    "Password": "your-app-password"
+    "Password": "your-gmail-app-password"
   },
   "BaseUrl": "https://localhost:7264",
   "ClientUrls": ["http://localhost:5173"],
   "JWT": {
-    "Issuer": "https://localhost:7264",
-    "Audience": "https://localhost:7264",
-    "SigningKey": "Your-512-bit-Secret-Key-Here-Must-Be-At-Least-64-Characters-Long"
+    "SigningKey": "Your-64-Character-Secret-Key-Here"
   },
-  "DatabaseProvider": "SqlServer",
   "ConnectionStrings": {
-    "SqlServerConnection": "Server=localhost;Database=ECM;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True"
-  }
-    "OpenAI": {
-    "ApiKey": "YOUR_API_KEY"
+    "SqlServerConnection": "Server=localhost;Database=ECM;Trusted_Connection=True;TrustServerCertificate=True"
+  },
+  "OpenAI": {
+    "ApiKey": "sk-your-key"
   }
 }
 ```
 
-**Note**: Use Gmail [App Password](https://support.google.com/accounts/answer/185833) for SMTP
-
----
-
-## 📦 Setup
-
-### Prerequisites
-- Visual Studio 2022 or VS Code
-- .NET 8 SDK
-- SQL Server
-
-### Installation
-```bash
-git clone https://github.com/Setsuna2207/ECM_BE.git
-cd ECM_BE
-```
-
-### Database
-```bash
-# Package Manager Console
-Update-Database
-
-# .NET CLI
-dotnet ef database update
-```
-
 ### Run
 ```bash
-dotnet restore
+dotnet ef database update
 dotnet build
 dotnet run
 ```
 
-Available at:
-- **HTTPS**: [https://localhost:7264](https://localhost:7264)
-- **Swagger**: [https://localhost:7264/swagger](https://localhost:7264/swagger)
+API: https://localhost:7264 | Swagger: https://localhost:7264/swagger
+
+---
+
+## 📡 Key API Endpoints
+
+**Auth**: `POST /api/User/register`, `POST /api/User/login`
+
+**Courses**: `GET/POST/PUT/DELETE /api/Course`
+
+**Lessons**: `GET/POST/PUT/DELETE /api/Lesson`
+
+**Quizzes**: `GET/POST/PUT/DELETE /api/Quiz`
+
+**Tests**: `GET/POST /api/PlacementTest`
+
+**File Upload**: `POST /api/FileUpload/upload?type={video|document|image}`
+- Max sizes: Video (5GB), Document (100MB), Image (10MB)
+
+**AI**: `GET /api/AITestRcm/recommend-test`, `GET /api/AICourseRcm/recommend-course`
+
+Full docs: https://localhost:7264/swagger
 
 ---
 
 ## 🔑 Authentication
 
-Uses **JWT tokens**. Include in request headers:
+JWT token required for protected endpoints:
 ```http
 Authorization: Bearer <token>
 ```
 
-**Policies**:
-- `AdminPolicy`                 - Admin role
-- `UserPolicy`                  - User or Admin role
-
----
-
-## 📡 API Endpoints
-
-- `/api/User`                   - Authentication & user management
-- `/api/Course`                 - Courses
-- `/api/Lesson`                 - Lessons
-- `/api/Quiz`                   - Quizzes
-- `/api/PlacementTest`          - Placement tests
-- `/api/Review`                 - Reviews
-- `/api/TestResult`             - Test results
-- `/api/QuizResult`             - Quiz results
-- `/api/History`                - Learning history
-- `/api/Following`              - Course following
-
-Full docs: [https://localhost:7264/swagger](https://localhost:7264/swagger)
-
----
-
-## 🗄️ Database
-
-Main entities: Users, Courses, Lessons, Quizzes, PlacementTests, Reviews, TestResults, QuizResults, History, Following
+**Roles**: Admin (full access), User (limited access)
 
 ---
 
 ## 🔧 Development
 
+**Migrations**:
 ```bash
-# Add migration
-Add-Migration MigrationName
-
-# Apply migration
-Update-Database
+dotnet ef migrations add MigrationName
+dotnet ef database update
 ```
+
+**File Storage**:
+- `/uploads/videos/` - Video files
+- `/uploads/documents/` - Documents
+- `/uploads/images/` - Images
+
+---
 
 ## 🐛 Troubleshooting
 
-- **Database Connection Failed**:       Check SQL Server and connection string
-- **JWT Token Invalid**:                Verify SigningKey is 512-bit (64+ characters)
-- **CORS Errors**:                      Add frontend URL to `ClientUrls` and restart
+- **DB Connection**: Check SQL Server running + connection string
+- **JWT Invalid**: Ensure SigningKey is 64+ characters
+- **CORS**: Add frontend URL to `ClientUrls`
+- **File Upload**: Check size limits + file permissions
+- **Email**: Use Gmail App Password
 
 ---
 
 ## 🔗 Links
-- Frontend: [https://github.com/Setsuna2207/ECM_FE]
-- .NET: [https://docs.microsoft.com/dotnet/]
-- EF Core: [https://docs.microsoft.com/ef/core/]
+- Frontend: [ECM_FE](https://github.com/Setsuna2207/ECM_FE)
+- [.NET Docs](https://docs.microsoft.com/dotnet/) | [EF Core](https://docs.microsoft.com/ef/core/)
