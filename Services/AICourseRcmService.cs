@@ -212,7 +212,6 @@ namespace ECM_BE.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[AICourseRcm] ⚠️ Warning: Could not save recommendations: {ex.Message}");
-                // Continue anyway - this is not critical
             }
 
             return aiResult;
