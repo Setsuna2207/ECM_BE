@@ -51,11 +51,9 @@ namespace ECM_BE.Services
         {
             try
             {
-                var hitories = await _context.Histories
+                await _context.Histories
                     .Where(h => h.userID == userId)
-                    .ToListAsync();
-                _context.Histories.RemoveRange(hitories);
-                await _context.SaveChangesAsync();
+                    .ExecuteDeleteAsync();
             }
             catch (Exception)
             {

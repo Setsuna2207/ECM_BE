@@ -22,7 +22,6 @@ namespace ECM_BE.Services
         {
             return await _context.Reviews
                 .AsNoTracking()
-                .Include(p => p.User)
                 .Select(p => new AllReviewDTO
                 {
                     CourseID = p.CourseID,
@@ -40,8 +39,7 @@ namespace ECM_BE.Services
         public async Task<List<ReviewDTO>> GetReviewByCourseIDAsync(int courseID)
         {
             return await _context.Reviews
-            .AsNoTracking()
-                .Include(p => p.User)
+                .AsNoTracking()
                 .Where(p => p.CourseID == courseID)
                 .Select(p => new ReviewDTO
                 {
@@ -60,8 +58,7 @@ namespace ECM_BE.Services
         public async Task<List<ReviewDTO>> GetReviewByuserIDAsync(string userID)
         {
             return await _context.Reviews
-            .AsNoTracking()
-                .Include(p => p.User)
+                .AsNoTracking()
                 .Where(p => p.userID == userID)
                 .Select(p => new ReviewDTO
                 {
@@ -81,17 +78,18 @@ namespace ECM_BE.Services
         {
             try
             {
-                // Check if user has completed the course
-                var history = await _context.Histories
+                // Check if user has completed the course and if review exists in one query
+                var completionCheck = await _context.Histories
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(h => h.userID == userID && h.CourseID == requestDto.CourseID);
                 
-                if (history == null || history.Progress < 100)
+                if (completionCheck == null || completionCheck.Progress < 100)
                 {
                     throw new InvalidOperationException("Bạn cần hoàn thành khóa học trước khi đánh giá.");
                 }
 
-                // Check if user already has a review for this course
                 var existingReview = await _context.Reviews
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(r => r.userID == userID && r.CourseID == requestDto.CourseID);
                 
                 if (existingReview != null)
@@ -117,25 +115,35 @@ namespace ECM_BE.Services
         public async Task<ReviewDTO> UpdateReviewAsync(int courseID, UpdateReviewDTO requestDto, string userID)
         {
             var review = await _context.Reviews
-                .Include(r => r.User)
-                .FirstOrDefaultAsync(r => r.CourseID == courseID && r.userID == userID);
+                .Where(r => r.CourseID == courseID && r.userID == userID)
+                .Select(r => new
+                {
+                    Review = r,
+                    UserName = r.User.UserName,
+                    FullName = r.User.FullName,
+                    Avatar = r.User.Avatar
+                })
+                .FirstOrDefaultAsync();
+
             if (review == null)
             {
                 throw new NotFoundException("You can only change your own review.");
             }
-            review.ReviewScore = requestDto.ReviewScore;
-            review.ReviewContent = requestDto.ReviewContent;
-            review.CreatedAt = DateTime.Now;
+
+            review.Review.ReviewScore = requestDto.ReviewScore;
+            review.Review.ReviewContent = requestDto.ReviewContent;
+            review.Review.CreatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
-            return review.ToReviewDto();
+            return review.Review.ToReviewDto();
         }
 
         public async Task<bool> DeleteReviewAsync(int courseID, string currentuserID, bool isAdmin = false)
         {
-            // Nếu là admin thì bỏ qua kiểm tra userID, còn không thì chỉ cho xóa đánh giá của chính người dùng.
-            var review = await _context.Reviews.FirstOrDefaultAsync(r => r.CourseID == courseID
-                                              && (isAdmin || r.userID == currentuserID));
+            var review = await _context.Reviews
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.CourseID == courseID
+                                          && (isAdmin || r.userID == currentuserID));
             if (review == null)
             {
                 throw new NotFoundException("Không tìm thấy đánh giá hoặc bạn không có quyền xóa đánh giá này.");

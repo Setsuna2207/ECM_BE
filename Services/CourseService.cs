@@ -30,9 +30,9 @@ namespace ECM_BE.Services
                     Description = c.Description,
                     ThumbnailUrl = c.ThumbnailUrl,
                     CreatedAt = c.CreatedAt,
-                    TotalLessons = c.Lessons != null ? c.Lessons.Count : 0,
-                    TotalReviews = c.Reviews != null ? c.Reviews.Count : 0,
-                    AverageRating = c.Reviews != null && c.Reviews.Any()
+                    TotalLessons = c.Lessons.Count,
+                    TotalReviews = c.Reviews.Count,
+                    AverageRating = c.Reviews.Any()
                         ? c.Reviews.Average(r => r.ReviewScore)
                         : (double?)null,
                     Categories = c.Categories.Select(cat => new CategoryDTO
@@ -48,28 +48,28 @@ namespace ECM_BE.Services
         public async Task<CourseDTO> GetCourseByIdAsync(int courseId)
         {
             var course = await _context.Courses
-                .Include(c => c.Categories)
-                .Include(c => c.Lessons)
-                .Include(c => c.Reviews)
-                .FirstOrDefaultAsync(c => c.CourseID == courseId);
+                .AsNoTracking()
+                .Where(c => c.CourseID == courseId)
+                .Select(c => new CourseDTO
+                {
+                    CourseID = c.CourseID,
+                    Title = c.Title,
+                    Description = c.Description,
+                    ThumbnailUrl = c.ThumbnailUrl,
+                    CreatedAt = c.CreatedAt,
+                    TotalLessons = c.Lessons.Count,
+                    TotalReviews = c.Reviews.Count,
+                    AverageRating = c.Reviews.Any()
+                        ? c.Reviews.Average(r => r.ReviewScore)
+                        : (double?)null,
+                    Categories = c.Categories.Select(cat => cat.Name).ToList()
+                })
+                .FirstOrDefaultAsync();
 
             if (course == null)
                 throw new Exception("Course not found");
 
-            return new CourseDTO
-            {
-                CourseID = course.CourseID,
-                Title = course.Title,
-                Description = course.Description,
-                ThumbnailUrl = course.ThumbnailUrl,
-                CreatedAt = course.CreatedAt,
-                TotalLessons = course.Lessons?.Count ?? 0,
-                TotalReviews = course.Reviews?.Count ?? 0,
-                AverageRating = course.Reviews != null && course.Reviews.Any()
-                    ? course.Reviews.Average(r => r.ReviewScore)
-                    : (double?)null,
-                Categories = course.Categories?.Select(cat => cat.Name).ToList()
-            };
+            return course;
         }
 
         public async Task<List<CourseCardDTO>> GetCoursesByCategoryAsync(int categoryId)
