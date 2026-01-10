@@ -22,7 +22,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "AdminPolicy")]
+        //[Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> GetAllUserGoals()
         {
             var goals = await _userGoalService.GetAllUserGoalsAsync();
@@ -45,7 +45,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> CreateUserGoal([FromBody] CreateUserGoalRequestDTO requestDto)
         {
             try
@@ -97,7 +97,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpPut("{goalId}")]
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> UpdateUserGoal(int goalId, [FromBody] UpdateUserGoalDTO requestDto)
         {
             if (!ModelState.IsValid)
@@ -115,7 +115,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpDelete("{goalId}")]
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> DeleteUserGoal(int goalId)
         {
             try
