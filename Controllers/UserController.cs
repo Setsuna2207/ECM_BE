@@ -45,6 +45,7 @@ namespace ECM_BE.Controllers
 
         [HttpGet("{userName}")]
         [Authorize(Policy = "UserPolicy")]
+        [ResponseCache(Duration = 60, VaryByQueryKeys = new[] { "userName" })] // Cache for 60 seconds
         public async Task<IActionResult> GetUser(string userName)
         {
             return await _userService.GetUserAsync(userName);

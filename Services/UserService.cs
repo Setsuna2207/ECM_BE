@@ -177,15 +177,29 @@ namespace ECM_BE.Services
         {
             try
             {
-                var user = await _userManager.Users.FirstOrDefaultAsync(u => u.UserName == userName);
-                if (user == null)
+                // Optimized: Single query with JOIN to get user and roles together
+                var user = await _context.Users
+                    .Where(u => u.UserName == userName)
+                    .Select(u => new
+                    {
+                        User = u,
+                        Role = _context.UserRoles
+                            .Where(ur => ur.UserId == u.Id)
+                            .Join(_context.Roles,
+                                ur => ur.RoleId,
+                                r => r.Id,
+                                (ur, r) => r.Name)
+                            .FirstOrDefault()
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (user == null || user.User == null)
                 {
                     return new UnauthorizedObjectResult("User not found");
                 }
-                var roles = await _userManager.GetRolesAsync(user);
-                var role = roles.FirstOrDefault();
-                var userForAdminDTO = UserMapper.ToViewUserForAdminDTOFromUser(user);
-                userForAdminDTO.Roles = role;
+
+                var userForAdminDTO = UserMapper.ToViewUserForAdminDTOFromUser(user.User);
+                userForAdminDTO.Roles = user.Role;
                 return new OkObjectResult(userForAdminDTO);
             }
             catch (Exception ex)

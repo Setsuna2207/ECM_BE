@@ -26,7 +26,6 @@ namespace ECM_BE.Services
                     CourseID = l.CourseID,
                     Title = l.Title,
                     OrderIndex = l.OrderIndex,
-                    CreatedAt = l.CreatedAt
                 })
                 .ToListAsync()
                 .ContinueWith(task => task.Result.Select(dto => new AllLessonDTO
@@ -35,7 +34,6 @@ namespace ECM_BE.Services
                     CourseID = dto.CourseID,
                     Title = dto.Title,
                     OrderIndex = dto.OrderIndex,
-                    CreatedAt = dto.CreatedAt
                 }).ToList());
         }
 
@@ -51,7 +49,6 @@ namespace ECM_BE.Services
                     CourseID = l.CourseID,
                     Title = l.Title,
                     OrderIndex = l.OrderIndex,
-                    CreatedAt = l.CreatedAt
                 })
                 .ToListAsync();
 
@@ -72,7 +69,6 @@ namespace ECM_BE.Services
                     CourseID = l.CourseID,
                     Title = l.Title,
                     OrderIndex = l.OrderIndex,
-                    CreatedAt = l.CreatedAt
                 })
                 .FirstOrDefaultAsync();
 

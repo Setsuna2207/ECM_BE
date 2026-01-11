@@ -21,7 +21,13 @@ if (dbProvider.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnection"),
-            sqlOptions => sqlOptions.MigrationsAssembly("ECM_BE")));
+            sqlOptions => 
+            {
+                sqlOptions.MigrationsAssembly("ECM_BE");
+                sqlOptions.CommandTimeout(30); // 30 second timeout
+                sqlOptions.EnableRetryOnFailure(3); // Retry 3 times on failure
+            })
+        .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking)); // Disable tracking for read-only queries
 }
 else
 {
@@ -32,6 +38,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
+
+// Add Response Caching for better performance
+builder.Services.AddResponseCaching();
+builder.Services.AddMemoryCache();
 
 // Exception handling
 builder.Services.AddSingleton<IExceptionMapper, NotFoundExceptionMapper>();
@@ -192,6 +202,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
+
+// Add Response Caching middleware
+app.UseResponseCaching();
 
 // Serve static files from uploads folder (for general uploads)
 app.UseStaticFiles(new StaticFileOptions
