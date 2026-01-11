@@ -18,23 +18,11 @@ namespace ECM_BE.Services
 
         public async Task<List<AllLessonDTO>> GetAllLessonsAsync()
         {
-            return await _context.Lessons
+            var lessons = await _context.Lessons
                 .AsNoTracking()
-                .Select(l => new AllLessonDTO
-                {
-                    LessonID = l.LessonID,
-                    CourseID = l.CourseID,
-                    Title = l.Title,
-                    OrderIndex = l.OrderIndex,
-                })
-                .ToListAsync()
-                .ContinueWith(task => task.Result.Select(dto => new AllLessonDTO
-                {
-                    LessonID = dto.LessonID,
-                    CourseID = dto.CourseID,
-                    Title = dto.Title,
-                    OrderIndex = dto.OrderIndex,
-                }).ToList());
+                .ToListAsync();
+
+            return lessons.Select(l => l.ToAllLessonDto()).ToList();
         }
 
         public async Task<List<LessonDTO>> GetLessonByCourseIdAsync(int courseId)
@@ -43,39 +31,24 @@ namespace ECM_BE.Services
                 .AsNoTracking()
                 .Where(l => l.CourseID == courseId)
                 .OrderBy(l => l.OrderIndex)
-                .Select(l => new LessonDTO
-                {
-                    LessonID = l.LessonID,
-                    CourseID = l.CourseID,
-                    Title = l.Title,
-                    OrderIndex = l.OrderIndex,
-                })
+                .AsNoTracking()
                 .ToListAsync();
 
             if (!lessons.Any())
                 throw new Exception("No lessons found for this course");
 
-            return lessons;
+            return lessons.Select(l => l.ToLessonDto()).ToList();
         }
 
         public async Task<LessonDTO> GetLessonByIdAsync(int lessonId)
         {
             var lesson = await _context.Lessons
-                .AsNoTracking()
-                .Where(l => l.LessonID == lessonId)
-                .Select(l => new LessonDTO
-                {
-                    LessonID = l.LessonID,
-                    CourseID = l.CourseID,
-                    Title = l.Title,
-                    OrderIndex = l.OrderIndex,
-                })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(l => l.LessonID == lessonId);
 
             if (lesson == null)
                 throw new Exception("Lesson not found");
 
-            return lesson;
+            return lesson.ToLessonDto();
         }
 
         public async Task<LessonDTO> CreateLessonAsync(CreateLessonRequestDTO requestDto)
