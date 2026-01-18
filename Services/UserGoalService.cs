@@ -26,6 +26,20 @@ namespace ECM_BE.Services
                 })
                 .ToListAsync();
         }
+
+        public async Task<List<AllUserGoalDTO>> GetUserGoalsByUserIdAsync(string userId)
+        {
+            return await _context.UserGoals
+                .Where(x => x.userID == userId)
+                .OrderBy(x => x.UpdatedAt)
+                .Select(x => new AllUserGoalDTO
+                {
+                    UserGoalID = x.UserGoalID,
+                    UserID = x.userID,
+                    Content = x.Content
+                })
+                .ToListAsync();
+        }
         public async Task<UserGoalDTO> GetUserGoalByIdAsync(int userGoalId)
         {
             var goal = await _context.UserGoals.FirstOrDefaultAsync(x => x.UserGoalID == userGoalId);

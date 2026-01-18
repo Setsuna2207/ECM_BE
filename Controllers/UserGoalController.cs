@@ -22,8 +22,31 @@ namespace ECM_BE.Controllers
         }
 
         [HttpGet]
-        //[Authorize(Policy = "AdminPolicy")]
+        [Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> GetAllUserGoals()
+        {
+            try
+            {
+                var username = User.GetUsername();
+                var user = await _userManager.FindByNameAsync(username);
+                
+                if (user == null)
+                {
+                    return NotFound("Không tìm thấy người dùng");
+                }
+
+                var goals = await _userGoalService.GetUserGoalsByUserIdAsync(user.Id);
+                return Ok(goals);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("admin/all")]
+        [Authorize(Policy = "AdminPolicy")]
+        public async Task<IActionResult> GetAllUserGoalsForAdmin()
         {
             var goals = await _userGoalService.GetAllUserGoalsAsync();
             return Ok(goals);

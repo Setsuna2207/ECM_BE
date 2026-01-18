@@ -5,6 +5,7 @@ namespace ECM_BE.Services.Interfaces
     public interface IUserGoalService
     {
         Task<List<AllUserGoalDTO>> GetAllUserGoalsAsync();
+        Task<List<AllUserGoalDTO>> GetUserGoalsByUserIdAsync(string userId);
         Task<UserGoalDTO> GetUserGoalByIdAsync(int userGoalId);
         Task<UserGoalDTO> CreateUserGoalAsync(CreateUserGoalRequestDTO requestDto);
         Task<UserGoalDTO> UpdateUserGoalAsync(int userGoalId, UpdateUserGoalDTO requestDto);
