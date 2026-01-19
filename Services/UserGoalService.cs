@@ -63,6 +63,18 @@ namespace ECM_BE.Services
                 _context.UserGoals.Add(entity);
                 await _context.SaveChangesAsync();
 
+                // INVALIDATE CACHED RECOMMENDATIONS when new goal is created
+                var cachedRecommendations = await _context.AIRcms
+                    .Where(x => x.userID == userId)
+                    .ToListAsync();
+                
+                if (cachedRecommendations.Any())
+                {
+                    _context.AIRcms.RemoveRange(cachedRecommendations);
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"[CreateUserGoal] 🗑️ Cleared {cachedRecommendations.Count} cached recommendations for user {userId}");
+                }
+
                 Console.WriteLine($"[CreateUserGoal] ✅ Created new goal with ID {entity.UserGoalID}");
 
                 return entity.ToUserGoalDto();
@@ -91,6 +103,18 @@ namespace ECM_BE.Services
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+
+                // INVALIDATE CACHED RECOMMENDATIONS when goal changes
+                var cachedRecommendations = await _context.AIRcms
+                    .Where(x => x.userID == entity.userID)
+                    .ToListAsync();
+                
+                if (cachedRecommendations.Any())
+                {
+                    _context.AIRcms.RemoveRange(cachedRecommendations);
+                    await _context.SaveChangesAsync();
+                    Console.WriteLine($"[UpdateUserGoal] 🗑️ Cleared {cachedRecommendations.Count} cached recommendations for user {entity.userID}");
+                }
 
                 Console.WriteLine($"[UpdateUserGoal] ✅ Goal updated successfully");
 

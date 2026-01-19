@@ -22,7 +22,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpGet]
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
         public async Task<IActionResult> GetAllUserGoals()
         {
             try
@@ -45,7 +45,7 @@ namespace ECM_BE.Controllers
         }
 
         [HttpGet("admin/all")]
-        [Authorize(Policy = "AdminPolicy")]
+        //[Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> GetAllUserGoalsForAdmin()
         {
             var goals = await _userGoalService.GetAllUserGoalsAsync();

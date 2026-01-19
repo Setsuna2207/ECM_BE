@@ -93,6 +93,18 @@ namespace ECM_BE.Services
             _context.TestResults.Add(tr);
             await _context.SaveChangesAsync();
 
+            // INVALIDATE CACHED RECOMMENDATIONS when new test result is created
+            var cachedRecommendations = await _context.AIRcms
+                .Where(x => x.userID == tr.userID)
+                .ToListAsync();
+            
+            if (cachedRecommendations.Any())
+            {
+                _context.AIRcms.RemoveRange(cachedRecommendations);
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"[CreateTestResult] 🗑️ Cleared {cachedRecommendations.Count} cached recommendations for user {tr.userID}");
+            }
+
             return tr.ToTestResultDto();
         }
 
