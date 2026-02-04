@@ -54,18 +54,16 @@ namespace ECM_BE.Services
 
                     if (recommendations != null && recommendations.Any())
                     {
-                        Console.WriteLine($"[AICourseRcm] ✅ Retrieved saved recommendations for user {userId}");
                         return new CourseRcmDTO { Recommendations = recommendations };
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[AICourseRcm] ⚠️ Error parsing saved recommendations: {ex.Message}");
+                    // Error parsing saved recommendations, continue to generate new ones
                 }
             }
 
             // If no saved recommendations, generate new ones
-            Console.WriteLine($"[AICourseRcm] Generating new recommendations for user {userId}");
 
             // User goal
             var userGoal = await _context.UserGoals
@@ -206,12 +204,10 @@ namespace ECM_BE.Services
 
                 _context.AIRcms.Add(aiRcm);
                 await _context.SaveChangesAsync();
-
-                Console.WriteLine($"[AICourseRcm] ✅ Saved recommendations for user {userId}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AICourseRcm] ⚠️ Warning: Could not save recommendations: {ex.Message}");
+                // Failed to save recommendations, but don't block the response
             }
 
             return aiResult;
@@ -230,7 +226,7 @@ namespace ECM_BE.Services
 
             var requestBody = new
             {
-                model = "gpt-4o-mini",
+                model = "gpt-4.1-mini",
                 messages = new[]
                 {
                     new { role = "system", content = systemPrompt },
