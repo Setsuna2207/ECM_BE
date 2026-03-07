@@ -241,28 +241,47 @@ namespace ECM_BE.Services
         {
             try
             {
+                Console.WriteLine($"[AdminUpdateUser] Updating user: {userForAdminDTO.UserName}");
+                Console.WriteLine($"[AdminUpdateUser] New role: {userForAdminDTO.Roles}");
+                
                 var user = await _userManager.Users.FirstOrDefaultAsync(u => u.UserName == userForAdminDTO.UserName);
                 if (user == null)
                 {
-                    return new UnauthorizedObjectResult("User not found");
+                    Console.WriteLine($"[AdminUpdateUser] User not found: {userForAdminDTO.UserName}");
+                    return new NotFoundObjectResult(new { message = "User not found" });
                 }
 
                 user.UpdateUserFromDTO(userForAdminDTO);
 
                 var roles = await _userManager.GetRolesAsync(user);
                 var currentRole = roles.FirstOrDefault();
+                
+                Console.WriteLine($"[AdminUpdateUser] Current role: {currentRole}, New role: {userForAdminDTO.Roles}");
+                
                 if (currentRole != userForAdminDTO.Roles)
                 {
-                    var removeRoleResult = await _userManager.RemoveFromRoleAsync(user, currentRole);
-                    if (!removeRoleResult.Succeeded)
+                    // Remove old role if exists
+                    if (!string.IsNullOrEmpty(currentRole))
                     {
-                        return new ObjectResult(removeRoleResult.Errors) { StatusCode = 500 };
+                        Console.WriteLine($"[AdminUpdateUser] Removing role: {currentRole}");
+                        var removeRoleResult = await _userManager.RemoveFromRoleAsync(user, currentRole);
+                        if (!removeRoleResult.Succeeded)
+                        {
+                            Console.WriteLine($"[AdminUpdateUser] Failed to remove role: {string.Join(", ", removeRoleResult.Errors.Select(e => e.Description))}");
+                            return new ObjectResult(removeRoleResult.Errors) { StatusCode = 500 };
+                        }
                     }
 
-                    var addRoleResult = await _userManager.AddToRoleAsync(user, userForAdminDTO.Roles);
-                    if (!addRoleResult.Succeeded)
+                    // Add new role if specified
+                    if (!string.IsNullOrEmpty(userForAdminDTO.Roles))
                     {
-                        return new ObjectResult(addRoleResult.Errors) { StatusCode = 500 };
+                        Console.WriteLine($"[AdminUpdateUser] Adding role: {userForAdminDTO.Roles}");
+                        var addRoleResult = await _userManager.AddToRoleAsync(user, userForAdminDTO.Roles);
+                        if (!addRoleResult.Succeeded)
+                        {
+                            Console.WriteLine($"[AdminUpdateUser] Failed to add role: {string.Join(", ", addRoleResult.Errors.Select(e => e.Description))}");
+                            return new ObjectResult(addRoleResult.Errors) { StatusCode = 500 };
+                        }
                     }
                 }
 
@@ -284,16 +303,20 @@ namespace ECM_BE.Services
                 var updateResult = await _userManager.UpdateAsync(user);
                 if (updateResult.Succeeded)
                 {
-                    return new OkObjectResult("User updated successfully");
+                    Console.WriteLine($"[AdminUpdateUser] User updated successfully: {userForAdminDTO.UserName}");
+                    return new OkObjectResult(new { message = "User updated successfully" });
                 }
                 else
                 {
+                    Console.WriteLine($"[AdminUpdateUser] Failed to update user: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
                     return new BadRequestObjectResult(updateResult.Errors);
                 }
             }
             catch (Exception ex)
             {
-                return new ObjectResult(ex) { StatusCode = 500 };
+                Console.WriteLine($"[AdminUpdateUser] Exception: {ex.Message}");
+                Console.WriteLine($"[AdminUpdateUser] Stack trace: {ex.StackTrace}");
+                return new ObjectResult(new { message = "Internal server error", error = ex.Message }) { StatusCode = 500 };
             }
         }
 
