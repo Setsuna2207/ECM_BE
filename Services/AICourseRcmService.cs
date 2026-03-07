@@ -16,11 +16,13 @@ namespace ECM_BE.Services
         private readonly IConfiguration _config;
 
         private const string SystemPrompt = @"
-                You are an AI assistant for an e-learning platform.
+                You are an AI assistant for an e-learning platform specializing in English language test preparation (TOEFL, IELTS, TOEIC).
+                Your task is to recommend courses that EXACTLY match the user's learning goal.
                 You must recommend courses based ONLY on the provided data.
                 You must NOT invent courses.
                 You must return VALID JSON ONLY.
                 Do not include any text outside JSON.
+                Pay close attention to the specific exam type (TOEFL/IELTS/TOEIC) mentioned in the user's goal.
                 ";
 
         public AICourseRcmService(
@@ -35,6 +37,8 @@ namespace ECM_BE.Services
 
         public async Task<CourseRcmDTO?> RecommendCourseAsync(string userId)
         {
+            Console.WriteLine($"[AICourseRcm] Starting course recommendation for user: {userId}");
+            
             // First, try to get saved recommendations from database
             var savedRcm = await _context.AIRcms
                 .Where(x => x.userID == userId)
@@ -43,6 +47,7 @@ namespace ECM_BE.Services
 
             if (savedRcm != null)
             {
+                Console.WriteLine($"[AICourseRcm] Found cached recommendation from {savedRcm.CreatedAt}");
                 try
                 {
                     var recommendations = JsonSerializer.Deserialize<List<CourseRcmItemDTO>>(
@@ -54,14 +59,18 @@ namespace ECM_BE.Services
 
                     if (recommendations != null && recommendations.Any())
                     {
+                        Console.WriteLine($"[AICourseRcm] Returning {recommendations.Count} cached recommendations");
                         return new CourseRcmDTO { Recommendations = recommendations };
                     }
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"[AICourseRcm] Error parsing cached recommendations: {ex.Message}");
                     // Error parsing saved recommendations, continue to generate new ones
                 }
             }
+
+            Console.WriteLine($"[AICourseRcm] No valid cache found, generating new recommendations");
 
             // If no saved recommendations, generate new ones
 
@@ -70,7 +79,12 @@ namespace ECM_BE.Services
                 .FirstOrDefaultAsync(x => x.userID == userId);
 
             if (userGoal == null)
+            {
+                Console.WriteLine($"[AICourseRcm] No user goal found for user: {userId}");
                 return null;
+            }
+
+            Console.WriteLine($"[AICourseRcm] Found user goal: {userGoal.Content}");
 
             // Test result
             var testResult = await _context.TestResults
@@ -79,7 +93,12 @@ namespace ECM_BE.Services
                 .FirstOrDefaultAsync();
 
             if (testResult == null)
+            {
+                Console.WriteLine($"[AICourseRcm] No test result found for user: {userId}");
                 return null;
+            }
+
+            Console.WriteLine($"[AICourseRcm] Found test result - Score: {testResult.OverallScore}, Level: {testResult.LevelDetected}");
 
             // Parse section scores
             Dictionary<string, float>? sectionScores = null;
@@ -117,7 +136,12 @@ namespace ECM_BE.Services
                 .ToListAsync();
 
             if (!courses.Any())
+            {
+                Console.WriteLine($"[AICourseRcm] No courses found in database");
                 return null;
+            }
+
+            Console.WriteLine($"[AICourseRcm] Found {courses.Count} courses in database");
 
             // Build user prompt
             var skillScoreText = sectionScores == null
@@ -141,9 +165,12 @@ namespace ECM_BE.Services
                     {JsonSerializer.Serialize(courses)}
 
                     Rules:
-                    1. Only recommend courses from the provided list.
-                    2. Prioritize courses that address weak skills.
-                    3. Recommend at most 3 courses.
+                    1. CRITICAL: Only recommend courses that are DIRECTLY RELEVANT to the user's learning goal ""{userGoal.Content}"".
+                    2. If the goal mentions TOEFL, only recommend TOEFL courses. If it mentions IELTS, only IELTS courses. If it mentions TOEIC, only TOEIC courses. If it mentions GENERAL, only GENERAL courses
+                    3. Match the course content and categories to the specific exam/skill mentioned in the goal.
+                    4. Prioritize courses that address weak skills shown in the test result.
+                    5. Recommend at most 3 courses.
+                    6. If no courses match the user's goal, return an empty recommendations array.
 
                     Return JSON in this format:
                     {{
@@ -157,9 +184,15 @@ namespace ECM_BE.Services
                     ";
 
             // OpenAI API call
+            Console.WriteLine($"[AICourseRcm] Calling OpenAI API...");
             var aiRawResponse = await CallOpenAIAsync(SystemPrompt, userPrompt);
             if (aiRawResponse == null)
+            {
+                Console.WriteLine($"[AICourseRcm] OpenAI API returned null");
                 return null;
+            }
+
+            Console.WriteLine($"[AICourseRcm] OpenAI response received");
 
             // Parse AI response
             CourseRcmDTO? aiResult;
@@ -172,13 +205,19 @@ namespace ECM_BE.Services
                         PropertyNameCaseInsensitive = true
                     });
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[AICourseRcm] Failed to parse AI response: {ex.Message}");
                 return null;
             }
 
             if (aiResult == null || aiResult.Recommendations == null)
+            {
+                Console.WriteLine($"[AICourseRcm] AI result is null or has no recommendations");
                 return null;
+            }
+
+            Console.WriteLine($"[AICourseRcm] Parsed {aiResult.Recommendations.Count} recommendations from AI");
 
             // Filter courseIds
             var validCourseIds = courses
@@ -204,12 +243,15 @@ namespace ECM_BE.Services
 
                 _context.AIRcms.Add(aiRcm);
                 await _context.SaveChangesAsync();
+                Console.WriteLine($"[AICourseRcm] Successfully saved {aiResult.Recommendations.Count} recommendations to database");
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[AICourseRcm] Failed to save recommendations: {ex.Message}");
                 // Failed to save recommendations, but don't block the response
             }
 
+            Console.WriteLine($"[AICourseRcm] Returning {aiResult.Recommendations.Count} recommendations");
             return aiResult;
         }
 
@@ -219,17 +261,23 @@ namespace ECM_BE.Services
         {
             var apiKey = _config["OpenAI:ApiKey"];
             if (string.IsNullOrEmpty(apiKey))
+            {
+                Console.WriteLine($"[AICourseRcm] No OpenAI API key configured");
                 return null;
+            }
 
+            _httpClient.DefaultRequestHeaders.Clear();
             _httpClient.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", apiKey);
 
+            Console.WriteLine($"[AICourseRcm] Using OpenAI model: gpt-4o-mini");
+
             var requestBody = new
             {
-                model = "gpt-4.1-mini",
+                model = "gpt-4o-mini",
                 messages = new[]
                 {
-                    new { role = "system", content = systemPrompt },
+                    new { role = "system", content = systemPrompt + " Return ONLY valid JSON, no markdown." },
                     new { role = "user", content = userPrompt }
                 },
                 temperature = 0.2
@@ -240,22 +288,54 @@ namespace ECM_BE.Services
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await _httpClient.PostAsync(
-                "https://api.openai.com/v1/chat/completions",
-                content);
+            try
+            {
+                var response = await _httpClient.PostAsync(
+                    "https://api.openai.com/v1/chat/completions",
+                    content);
 
-            if (!response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[AICourseRcm] OpenAI API error: {response.StatusCode} - {errorContent}");
+                    return null;
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+
+                var responseText = doc.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("message")
+                    .GetProperty("content")
+                    .GetString();
+
+                // Clean up markdown code blocks if present
+                if (responseText != null)
+                {
+                    responseText = responseText.Trim();
+                    if (responseText.StartsWith("```json"))
+                    {
+                        responseText = responseText.Substring(7);
+                    }
+                    if (responseText.StartsWith("```"))
+                    {
+                        responseText = responseText.Substring(3);
+                    }
+                    if (responseText.EndsWith("```"))
+                    {
+                        responseText = responseText.Substring(0, responseText.Length - 3);
+                    }
+                    responseText = responseText.Trim();
+                }
+
+                return responseText;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AICourseRcm] Exception calling OpenAI: {ex.Message}");
                 return null;
-
-            var json = await response.Content.ReadAsStringAsync();
-
-            using var doc = JsonDocument.Parse(json);
-
-            return doc.RootElement
-                .GetProperty("choices")[0]
-                .GetProperty("message")
-                .GetProperty("content")
-                .GetString();
+            }
         }
     }
 }
