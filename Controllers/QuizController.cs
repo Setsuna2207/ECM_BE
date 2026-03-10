@@ -182,8 +182,14 @@ namespace ECM_BE.Controllers
         [Authorize(Policy = "AdminPolicy")]
         public async Task<IActionResult> UploadMediaFile(IFormFile file, [FromQuery] int quizId)
         {
+            Console.WriteLine($"[UploadMedia] Starting media upload for quiz ID: {quizId}");
+            Console.WriteLine($"[UploadMedia] File name: {file?.FileName}, Size: {file?.Length}");
+            
             if (file == null || file.Length == 0)
+            {
+                Console.WriteLine($"[UploadMedia] No file uploaded");
                 return BadRequest("No file uploaded");
+            }
 
             try
             {
@@ -191,17 +197,25 @@ namespace ECM_BE.Controllers
                 var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
                 Directory.CreateDirectory(Path.GetDirectoryName(uploadPath));
 
+                Console.WriteLine($"[UploadMedia] Saving file to: {uploadPath}");
+
                 using (var stream = new FileStream(uploadPath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
                 var mediaUrl = $"/uploads/{fileName}";
+                Console.WriteLine($"[UploadMedia] Media URL: {mediaUrl}");
 
                 // Get existing quiz
                 var existingQuiz = await _quizService.GetQuizByIdAsync(quizId);
                 if (existingQuiz == null)
+                {
+                    Console.WriteLine($"[UploadMedia] Quiz not found: {quizId}");
                     return NotFound("Quiz not found");
+                }
+
+                Console.WriteLine($"[UploadMedia] Found quiz: {existingQuiz.QuizID}, LessonID: {existingQuiz.LessonID}");
 
                 // Create update DTO with only the fields we need
                 var updateDto = new UpdateQuizDTO
@@ -213,7 +227,11 @@ namespace ECM_BE.Controllers
                     Questions = null  // Don't touch questions
                 };
 
+                Console.WriteLine($"[UploadMedia] Updating quiz with MediaUrl: {updateDto.MediaUrl}");
+
                 await _quizService.UpdateQuizAsync(quizId, updateDto);
+
+                Console.WriteLine($"[UploadMedia] Media upload completed successfully");
 
                 return Ok(new
                 {
@@ -223,6 +241,8 @@ namespace ECM_BE.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[UploadMedia] Error: {ex.Message}");
+                Console.WriteLine($"[UploadMedia] Stack trace: {ex.StackTrace}");
                 return BadRequest($"Error processing media: {ex.Message}");
             }
         }

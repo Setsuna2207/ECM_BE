@@ -22,7 +22,8 @@ namespace ECM_BE.Services
                 You must NOT invent courses.
                 You must return VALID JSON ONLY.
                 Do not include any text outside JSON.
-                Pay close attention to the specific exam type (TOEFL/IELTS/TOEIC) mentioned in the user's goal.
+                Pay close attention to the specific exam type (TOEFL/IELTS/TOEIC/GENERAL) mentioned in the user
+
                 ";
 
         public AICourseRcmService(

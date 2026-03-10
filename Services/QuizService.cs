@@ -56,9 +56,17 @@ namespace ECM_BE.Services
 
         public async Task<QuizDTO> UpdateQuizAsync(int quizId, UpdateQuizDTO requestDto)
         {
+            Console.WriteLine($"[UpdateQuiz] Updating quiz ID: {quizId}");
+            Console.WriteLine($"[UpdateQuiz] MediaUrl in request: {requestDto.MediaUrl}");
+            
             var quiz = await _context.Quizzes.FirstOrDefaultAsync(x => x.QuizID == quizId);
             if (quiz == null)
+            {
+                Console.WriteLine($"[UpdateQuiz] Quiz not found: {quizId}");
                 throw new Exception("Không tìm thấy bài quiz");
+            }
+
+            Console.WriteLine($"[UpdateQuiz] Current MediaUrl: {quiz.MediaUrl}");
 
             quiz.LessonID = requestDto.LessonID;
             quiz.QuestionFileUrl = requestDto.QuestionFileUrl;
@@ -68,7 +76,15 @@ namespace ECM_BE.Services
                 ? JsonConvert.SerializeObject(requestDto.Questions)
                 : quiz.Questions;
 
-            await _context.SaveChangesAsync();
+            Console.WriteLine($"[UpdateQuiz] New MediaUrl: {quiz.MediaUrl}");
+
+            // Explicitly mark the entity as modified to ensure EF tracks the changes
+            _context.Entry(quiz).State = EntityState.Modified;
+
+            var changes = await _context.SaveChangesAsync();
+            
+            Console.WriteLine($"[UpdateQuiz] Quiz updated successfully. Changes saved: {changes}");
+            
             return quiz.ToQuizDto();
         }
 
